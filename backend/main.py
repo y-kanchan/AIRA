@@ -12,7 +12,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from routers import interview, tts
+from routers import interview, tts, auth, user
 
 # ── Ensure runtime dirs exist ────────────────────────────────────────────────
 AUDIOS_DIR = Path(__file__).parent / "audios"
@@ -35,6 +35,8 @@ app.add_middleware(
 app.mount("/audio", StaticFiles(directory=str(AUDIOS_DIR)), name="audio")
 
 # Routers
+app.include_router(auth.router)
+app.include_router(user.router)
 app.include_router(interview.router)
 app.include_router(tts.router)
 

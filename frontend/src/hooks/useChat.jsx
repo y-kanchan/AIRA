@@ -66,8 +66,10 @@ export const ChatProvider = ({ children }) => {
     if (githubUrl) form.append("github_url", githubUrl);
 
     try {
+      const token = localStorage.getItem("ai_tutor_token");
       const resp = await fetch(`${backendUrl}/interview/upload-documents`, {
         method: "POST",
+        headers: token ? { "Authorization": `Bearer ${token}` } : {},
         body: form
       });
       if (!resp.ok) {
@@ -89,7 +91,11 @@ export const ChatProvider = ({ children }) => {
     setInterviewPhase("starting");
     setLoading(true);
     try {
-      const resp = await fetch(`${backendUrl}/interview/start/${sid}`, { method: "POST" });
+      const token = localStorage.getItem("ai_tutor_token");
+      const resp = await fetch(`${backendUrl}/interview/start/${sid}`, { 
+        method: "POST",
+        headers: token ? { "Authorization": `Bearer ${token}` } : {}
+      });
       if (!resp.ok) throw new Error(`Start failed (${resp.status})`);
       const data = await resp.json();
 
@@ -113,9 +119,13 @@ export const ChatProvider = ({ children }) => {
     setAnswers((prev) => [...prev, { question: currentQuestion.question, answer }]);
 
     try {
+      const token = localStorage.getItem("ai_tutor_token");
       const resp = await fetch(`${backendUrl}/interview/answer`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          ...(token ? { "Authorization": `Bearer ${token}` } : {})
+        },
         body: JSON.stringify({ session_id: sessionId, answer })
       });
       if (!resp.ok) throw new Error(`Answer submit failed (${resp.status})`);

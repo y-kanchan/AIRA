@@ -5,9 +5,10 @@ import traceback
 from pathlib import Path
 from typing import Optional
 
-from fastapi import APIRouter, File, Form, UploadFile, HTTPException
+from fastapi import APIRouter, File, Form, UploadFile, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
+from datetime import datetime
 from langgraph.types import Command
 
 from services import rag, sarvam_tts
@@ -19,6 +20,8 @@ from services.interview_graph import (
     InterviewState
 )
 from services.ollama_client import generate_avatar_response
+from services.auth_utils import get_current_user
+from db import interviews_collection
 
 router = APIRouter(prefix="/interview", tags=["interview"])
 
@@ -37,6 +40,7 @@ async def upload_documents(
     jd: Optional[UploadFile] = File(None),
     jd_text: Optional[str] = Form(None),
     github_url: Optional[str] = Form(None),
+    user_id: str = Depends(get_current_user),
 ):
     """
     Accept resume PDF, JD (PDF or text), and GitHub URL.
@@ -77,8 +81,11 @@ async def upload_documents(
             github_text=github_content
         )
 
-        # Persist context for graph initialization
-        _session_contexts[session_id] = context
+        # Persist context and user_id for graph initialization
+        _session_contexts[session_id] = {
+            "context": context,
+            "user_id": user_id
+        }
 
         return {
             "session_id": session_id,
@@ -109,7 +116,8 @@ async def start_interview(session_id: str):
     if session_id not in _session_contexts:
         raise HTTPException(404, "Session not found. Upload documents first.")
 
-    context = _session_contexts[session_id]
+    session_data = _session_contexts[session_id]
+    context = session_data["context"]
     config = get_thread_config(session_id)
 
     initial_state = InterviewState(
@@ -190,11 +198,42 @@ async def submit_answer(body: AnswerRequest):
     # Check if interview is complete
     if state_vals.get("status") == "complete":
         report = state_vals.get("report", "Interview complete.")
+        answers = state_vals.get("answers", [])
+        
+        # Calculate overall score based on answer evaluations
+        total_score = 0
+        valid_evals = 0
+        for ans in answers:
+            if "evaluation" in ans and ans["evaluation"] and "score" in ans["evaluation"]:
+                try:
+                    total_score += int(ans["evaluation"]["score"])
+                    valid_evals += 1
+                except (ValueError, TypeError):
+                    pass
+        
+        overall_score = round(total_score / valid_evals, 1) if valid_evals > 0 else 0
+        
+        # Save to MongoDB
+        session_data = _session_contexts.get(body.session_id, {})
+        user_id = session_data.get("user_id")
+        
+        if user_id:
+            new_interview = {
+                "user_id": user_id,
+                "session_id": body.session_id,
+                "created_at": datetime.utcnow().isoformat(),
+                "report": report,
+                "answers": answers,
+                "overall_score": overall_score,
+                "total_questions": len(answers)
+            }
+            await interviews_collection.insert_one(new_interview)
+            
         return {
             "complete": True,
             "report": report,
-            "answers": state_vals.get("answers", []),
-            "total_questions": len(state_vals.get("answers", []))
+            "answers": answers,
+            "total_questions": len(answers)
         }
 
     # Get next question from interrupt

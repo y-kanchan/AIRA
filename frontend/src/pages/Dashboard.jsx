@@ -13,6 +13,49 @@ export default function Dashboard() {
   const [jdText, setJdText] = useState("");
   const [jdMode, setJdMode] = useState("file");
   const [githubUrl, setGithubUrl] = useState("");
+  const [history, setHistory] = useState([]);
+  const [loadingHistory, setLoadingHistory] = useState(true);
+
+  // Authentication & History Fetch
+  useEffect(() => {
+    const fetchHistory = async () => {
+      const token = localStorage.getItem("ai_tutor_token");
+      if (!token) {
+        navigate("/login");
+        return;
+      }
+      
+      try {
+        const res = await fetch("http://localhost:8000/user/history", {
+          headers: {
+            "Authorization": `Bearer ${token}`
+          }
+        });
+        
+        if (res.status === 401) {
+          localStorage.removeItem("ai_tutor_token");
+          navigate("/login");
+          return;
+        }
+        
+        if (res.ok) {
+          const data = await res.json();
+          setHistory(data.history);
+        }
+      } catch (err) {
+        console.error("Failed to fetch history:", err);
+      } finally {
+        setLoadingHistory(false);
+      }
+    };
+    
+    fetchHistory();
+  }, [navigate]);
+
+  const handleLogout = () => {
+    localStorage.removeItem("ai_tutor_token");
+    navigate("/");
+  };
 
   const handleStart = async () => {
     if (!resumeFile) return;
@@ -41,7 +84,7 @@ export default function Dashboard() {
             <p className="text-xs text-gray-400">Candidate Dashboard</p>
           </div>
         </div>
-        <button onClick={() => navigate("/")} className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors">
+        <button onClick={handleLogout} className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors">
           <LogOut className="w-4 h-4" /> Sign Out
         </button>
       </header>
@@ -131,11 +174,13 @@ export default function Dashboard() {
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-gray-950 rounded-xl p-3 border border-gray-800">
                 <p className="text-xs text-gray-500 font-semibold mb-1">Interviews</p>
-                <p className="text-2xl font-bold text-indigo-400">12</p>
+                <p className="text-2xl font-bold text-indigo-400">{history.length}</p>
               </div>
               <div className="bg-gray-950 rounded-xl p-3 border border-gray-800">
                 <p className="text-xs text-gray-500 font-semibold mb-1">Avg Score</p>
-                <p className="text-2xl font-bold text-purple-400">7.6</p>
+                <p className="text-2xl font-bold text-purple-400">
+                  {history.length > 0 ? (history.reduce((acc, curr) => acc + curr.score, 0) / history.length).toFixed(1) : "0.0"}
+                </p>
               </div>
             </div>
           </motion.div>
@@ -147,22 +192,28 @@ export default function Dashboard() {
             </div>
             
             <div className="space-y-3">
-              {mockHistory.map((item, i) => (
-                <div key={i} className="bg-gray-950 p-4 rounded-xl border border-gray-800 hover:border-gray-700 transition-colors cursor-pointer group">
-                  <div className="flex justify-between items-start mb-2">
-                    <p className="text-sm font-semibold text-white group-hover:text-indigo-300 transition-colors">{item.role}</p>
-                    <span className={`text-xs font-bold px-2 py-1 rounded-md ${
-                      item.score >= 8 ? 'bg-emerald-500/10 text-emerald-400' :
-                      item.score >= 7 ? 'bg-indigo-500/10 text-indigo-400' : 'bg-red-500/10 text-red-400'
-                    }`}>
-                      {item.score}/10
-                    </span>
+              {loadingHistory ? (
+                <p className="text-sm text-gray-500 text-center py-4">Loading history...</p>
+              ) : history.length === 0 ? (
+                <p className="text-sm text-gray-500 text-center py-4">No interviews completed yet.</p>
+              ) : (
+                history.map((item, i) => (
+                  <div key={i} className="bg-gray-950 p-4 rounded-xl border border-gray-800 hover:border-gray-700 transition-colors cursor-pointer group">
+                    <div className="flex justify-between items-start mb-2">
+                      <p className="text-sm font-semibold text-white group-hover:text-indigo-300 transition-colors">{item.role}</p>
+                      <span className={`text-xs font-bold px-2 py-1 rounded-md ${
+                        item.score >= 8 ? 'bg-emerald-500/10 text-emerald-400' :
+                        item.score >= 7 ? 'bg-indigo-500/10 text-indigo-400' : 'bg-red-500/10 text-red-400'
+                      }`}>
+                        {item.score}/10
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                      <Calendar className="w-3 h-3" /> {new Date(item.date).toLocaleDateString()}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                    <Calendar className="w-3 h-3" /> {item.date}
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </motion.div>
         </div>

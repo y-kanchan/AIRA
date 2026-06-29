@@ -7,13 +7,35 @@ export default function Signup() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
 
-  const handleSignup = (e) => {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+
+  const handleSignup = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    setError("");
+    
+    try {
+      const response = await fetch("http://localhost:8000/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password })
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.detail || "Signup failed");
+      }
+      
+      localStorage.setItem("ai_tutor_token", data.access_token);
       navigate("/dashboard");
-    }, 1000);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -34,6 +56,12 @@ export default function Signup() {
         </div>
 
         <form onSubmit={handleSignup} className="space-y-4">
+          {error && (
+            <div className="bg-red-900/30 border border-red-700/50 text-red-400 text-sm p-3 rounded-xl text-center">
+              {error}
+            </div>
+          )}
+          
           <div className="space-y-1">
             <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider ml-1">Full Name</label>
             <div className="relative">
@@ -54,6 +82,8 @@ export default function Signup() {
               <input 
                 type="email" 
                 required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="w-full bg-gray-950 border border-gray-800 text-white rounded-xl py-3 pl-12 pr-4 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
                 placeholder="you@example.com"
               />
@@ -67,6 +97,8 @@ export default function Signup() {
               <input 
                 type="password" 
                 required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 className="w-full bg-gray-950 border border-gray-800 text-white rounded-xl py-3 pl-12 pr-4 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
                 placeholder="••••••••"
               />
