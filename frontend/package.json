@@ -15,8 +15,10 @@
     "@types/three": "0.152.1",
     "framer-motion": "^12.23.16",
     "leva": "^0.9.35",
+    "lucide-react": "^1.22.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-router-dom": "^7.18.1",
     "three": "0.153.0"
   },
   "devDependencies": {

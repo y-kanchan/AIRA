@@ -24,27 +24,7 @@ body.greenScreen {
   background-image: none;
 }
 
-.avatar-section {
-  background: transparent;
-  position: relative;
-}
-
-.avatar-section::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.05) 0%, transparent 70%);
-  pointer-events: none;
-}
-
-.chat-section {
-  backdrop-filter: blur(10px);
-  background: linear-gradient(to bottom right, rgba(17, 17, 17, 0.95), rgba(17, 17, 17, 0.8));
-  border-left: 1px solid rgba(255, 255, 255, 0.1);
-}
+/* Avatar and Chat section styles moved exclusively to layout.css */
 
 /* Custom scrollbar for modern browsers */
 ::-webkit-scrollbar {

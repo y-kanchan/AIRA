@@ -1,7 +1,6 @@
 /* Avatar section styles */
 .avatar-section {
   background: transparent;
-  border-right: 1px solid rgba(255, 255, 255, 0.1);
   position: relative;
   transition: all 0.3s ease;
 }
@@ -20,21 +19,11 @@
 
 /* Chat section styles */
 .chat-section {
-  backdrop-filter: blur(16px);
-  background: linear-gradient(to bottom right, 
-    rgba(23, 23, 23, 0.95), 
-    rgba(17, 17, 17, 0.85)
-  );
-  box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.05);
+  background: transparent;
   transition: all 0.3s ease;
 }
 
-.chat-section:hover {
-  background: linear-gradient(to bottom right, 
-    rgba(25, 25, 25, 0.97), 
-    rgba(19, 19, 19, 0.87)
-  );
-}
+/* Removed chat-section hover background to preserve transparent overlap */
 
 /* Message input styles */
 .message-input {

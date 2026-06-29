@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useChat } from "../hooks/useChat";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -12,6 +12,30 @@ const ScoreBar = ({ score }) => {
         <div className="h-1.5 rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: color }} />
       </div>
       <span className="text-xs font-bold" style={{ color }}>{score}/10</span>
+    </div>
+  );
+};
+
+const Timer = ({ active }) => {
+  const [seconds, setSeconds] = useState(0);
+
+  useEffect(() => {
+    let interval;
+    if (active) {
+      interval = setInterval(() => setSeconds(s => s + 1), 1000);
+    }
+    return () => clearInterval(interval);
+  }, [active]);
+
+  const mins = Math.floor(seconds / 60).toString().padStart(2, "0");
+  const secs = (seconds % 60).toString().padStart(2, "0");
+
+  return (
+    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-900/80 border border-gray-800 shadow-inner">
+      <div className={`w-2 h-2 rounded-full ${active ? 'bg-red-500 animate-pulse' : 'bg-gray-600'}`} />
+      <span className={`font-mono text-sm font-medium ${active ? 'text-white' : 'text-gray-500'}`}>
+        {mins}:{secs}
+      </span>
     </div>
   );
 };
@@ -54,12 +78,7 @@ export const UI = ({ hidden, showControls = true, showChat = true }) => {
     uploadDocuments, submitAnswer, resetInterview,
   } = useChat();
 
-  /* file inputs */
-  const [resumeFile, setResumeFile]   = useState(null);
-  const [jdFile,     setJdFile]       = useState(null);
-  const [jdText,     setJdText]       = useState("");
-  const [jdMode,     setJdMode]       = useState("file"); // "file" | "text"
-  const [githubUrl,  setGithubUrl]    = useState("");
+  /* upload state moved to Dashboard */
 
   /* answer input */
   const answerRef = useRef();
@@ -88,10 +107,7 @@ export const UI = ({ hidden, showControls = true, showChat = true }) => {
     else             { recognition.current.start(); setIsListening(true); }
   };
 
-  const handleUpload = () => {
-    if (!resumeFile) return;
-    uploadDocuments({ resumeFile, jdFile, jdText: jdMode === "text" ? jdText : "", githubUrl });
-  };
+  // Upload handler moved to Dashboard
 
   const handleAnswer = () => {
     const text = answerRef.current?.value?.trim();
@@ -123,14 +139,26 @@ export const UI = ({ hidden, showControls = true, showChat = true }) => {
         <div className="flex-1 flex flex-col overflow-hidden">
 
           {/* Phase header */}
-          <div className="bg-gray-950/95 border-b border-gray-800 px-4 pt-3 pb-1">
-            <div className="flex items-center justify-between mb-1">
-              <h1 className="text-sm font-bold tracking-widest text-indigo-400 uppercase">AI Interview</h1>
-              {interviewPhase !== "upload" && (
-                <button onClick={resetInterview} className="text-xs text-gray-500 hover:text-red-400 transition-colors">
-                  ↺ Reset
-                </button>
-              )}
+          <div className="bg-gray-950/95 border-b border-gray-800 px-6 pt-4 pb-2 shadow-sm relative z-20">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                  <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                </div>
+                <h1 className="text-sm font-bold tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400 uppercase">Live Interview</h1>
+              </div>
+              
+              <div className="flex items-center gap-4">
+                <Timer active={interviewPhase === "interviewing" || interviewPhase === "starting"} />
+                {interviewPhase !== "upload" && (
+                  <button onClick={resetInterview} className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-gray-900 border border-gray-700 text-xs font-semibold text-gray-400 hover:text-red-400 hover:border-red-900/50 hover:bg-red-900/20 transition-all">
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                    Restart
+                  </button>
+                )}
+              </div>
             </div>
             <PhaseIndicator
               phase={interviewPhase}
@@ -142,115 +170,46 @@ export const UI = ({ hidden, showControls = true, showChat = true }) => {
           </div>
 
           {/* Phase panels */}
-          <div className="flex-1 overflow-y-auto bg-gray-950">
+          <div className="flex-1 overflow-y-auto bg-transparent">
             <AnimatePresence mode="wait">
 
-              {/* ── UPLOAD PHASE ── */}
+              {/* ── UPLOAD PHASE (Handled in Dashboard) ── */}
               {(interviewPhase === "upload" || interviewPhase === "uploading") && (
                 <motion.div key="upload"
-                  initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
-                  className="p-5 space-y-4"
+                  initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
+                  className="flex-1 flex flex-col items-center justify-center gap-6 p-8 relative overflow-hidden"
                 >
-                  <div className="text-center mb-2">
-                    <p className="text-gray-300 text-sm">Upload your resume & job details to begin the AI interview</p>
-                  </div>
-
-                  {uploadError && (
-                    <div className="bg-red-900/30 border border-red-700/50 rounded-xl p-3 text-red-300 text-sm">{uploadError}</div>
-                  )}
-
-                  {/* Resume */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-indigo-300 uppercase tracking-wider">Resume (PDF) *</label>
-                    <label className={`flex items-center gap-3 p-3 rounded-xl border-2 border-dashed cursor-pointer transition-all
-                      ${resumeFile ? "border-indigo-500 bg-indigo-900/20" : "border-gray-700 hover:border-indigo-600 bg-gray-900/50"}`}>
-                      <input type="file" accept=".pdf" className="hidden"
-                        onChange={(e) => setResumeFile(e.target.files?.[0] || null)} />
-                      <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-indigo-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                      <span className={`text-sm truncate ${resumeFile ? "text-indigo-300" : "text-gray-400"}`}>
-                        {resumeFile ? resumeFile.name : "Click to upload resume PDF"}
-                      </span>
-                    </label>
-                  </div>
-
-                  {/* JD */}
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <label className="text-xs font-semibold text-purple-300 uppercase tracking-wider">Job Description</label>
-                      <div className="flex gap-1 bg-gray-800 rounded-lg p-0.5">
-                        {["file", "text"].map(m => (
-                          <button key={m} onClick={() => setJdMode(m)}
-                            className={`text-xs px-2.5 py-1 rounded-md transition-all font-medium
-                              ${jdMode === m ? "bg-purple-600 text-white" : "text-gray-400 hover:text-white"}`}>
-                            {m === "file" ? "PDF" : "Text"}
-                          </button>
-                        ))}
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-indigo-500/10 rounded-full blur-[80px] pointer-events-none" />
+                  
+                  {interviewPhase === "upload" ? (
+                    <div className="text-center relative z-10 max-w-sm">
+                      <div className="w-20 h-20 mx-auto mb-6 bg-gray-900/80 backdrop-blur-sm border border-gray-700 rounded-3xl flex items-center justify-center shadow-2xl shadow-indigo-500/20 rotate-3 hover:rotate-0 transition-transform">
+                        <svg className="w-10 h-10 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                        </svg>
                       </div>
+                      <h2 className="text-2xl font-bold text-white mb-2 tracking-tight">Session Inactive</h2>
+                      <p className="text-gray-400 text-sm mb-8 leading-relaxed">You need to configure your interview session from the dashboard before we can begin.</p>
+                      
+                      <button onClick={() => window.location.href='/dashboard'} className="group relative inline-flex items-center justify-center w-full px-8 py-3.5 font-bold text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl overflow-hidden transition-all hover:scale-[1.02] shadow-xl shadow-indigo-500/25">
+                        <span className="absolute w-0 h-0 transition-all duration-500 ease-out bg-white rounded-full group-hover:w-56 group-hover:h-56 opacity-10"></span>
+                        <span className="relative flex items-center gap-2">Return to Dashboard <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg></span>
+                      </button>
                     </div>
-                    {jdMode === "file" ? (
-                      <label className={`flex items-center gap-3 p-3 rounded-xl border-2 border-dashed cursor-pointer transition-all
-                        ${jdFile ? "border-purple-500 bg-purple-900/20" : "border-gray-700 hover:border-purple-600 bg-gray-900/50"}`}>
-                        <input type="file" accept=".pdf" className="hidden"
-                          onChange={(e) => setJdFile(e.target.files?.[0] || null)} />
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-purple-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        <span className={`text-sm truncate ${jdFile ? "text-purple-300" : "text-gray-400"}`}>
-                          {jdFile ? jdFile.name : "Click to upload JD PDF (optional)"}
-                        </span>
-                      </label>
-                    ) : (
-                      <textarea
-                        rows={4}
-                        value={jdText}
-                        onChange={(e) => setJdText(e.target.value)}
-                        placeholder="Paste the job description here…"
-                        className="w-full bg-gray-900/70 text-white placeholder:text-gray-500 p-3 rounded-xl border border-gray-700 focus:border-purple-500 focus:outline-none text-sm resize-none"
-                      />
-                    )}
-                  </div>
-
-                  {/* GitHub */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-cyan-300 uppercase tracking-wider">GitHub Project URL (optional)</label>
-                    <div className="flex items-center gap-2 bg-gray-900/70 rounded-xl border border-gray-700 focus-within:border-cyan-500 px-3">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-cyan-400 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-                      </svg>
-                      <input
-                        type="url"
-                        value={githubUrl}
-                        onChange={(e) => setGithubUrl(e.target.value)}
-                        placeholder="https://github.com/username/repo"
-                        className="flex-1 bg-transparent text-white placeholder:text-gray-500 py-3 text-sm focus:outline-none"
-                      />
+                  ) : (
+                    <div className="text-center relative z-10">
+                      <div className="relative w-24 h-24 mx-auto mb-6">
+                        <div className="absolute inset-0 rounded-full border-2 border-indigo-500/20" />
+                        <div className="absolute inset-0 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <svg className="w-8 h-8 text-indigo-400 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+                        </div>
+                      </div>
+                      <h2 className="text-xl font-bold text-white mb-2 tracking-tight">Initializing Session</h2>
+                      <p className="text-indigo-300/80 font-medium text-sm mb-1">Analyzing your credentials…</p>
+                      <p className="text-gray-500 text-xs">Setting up isolated interview environment</p>
                     </div>
-                  </div>
-
-                  {/* Start button */}
-                  <motion.button
-                    onClick={handleUpload}
-                    disabled={!resumeFile || interviewPhase === "uploading"}
-                    whileHover={{ scale: resumeFile ? 1.02 : 1 }}
-                    whileTap={{ scale: 0.98 }}
-                    className={`w-full py-3.5 rounded-xl font-bold text-sm tracking-wide transition-all duration-300
-                      ${resumeFile && interviewPhase !== "uploading"
-                        ? "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-lg shadow-indigo-900/40"
-                        : "bg-gray-800 text-gray-500 cursor-not-allowed"
-                      }`}
-                  >
-                    {interviewPhase === "uploading" ? (
-                      <span className="flex items-center justify-center gap-2">
-                        <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-                        </svg>
-                        Uploading & Analysing…
-                      </span>
-                    ) : "Start Interview →"}
-                  </motion.button>
+                  )}
                 </motion.div>
               )}
 
