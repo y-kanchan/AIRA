@@ -7,3 +7,6 @@ node_modules/
 *.mp4
 *.avi
 .env
+uploads/
+backend/audios/
+backend/chroma_db/
