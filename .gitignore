@@ -1,0 +1,9 @@
+venv/
+__pycache__/
+node_modules/
+*.mp3
+*.wav
+*.ogg   
+*.mp4
+*.avi
+.env
