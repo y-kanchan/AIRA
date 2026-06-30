@@ -4,6 +4,7 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
 import InterviewRoom from "./pages/InterviewRoom";
+import Report from "./pages/Report";
 
 function App() {
   return (
@@ -13,6 +14,7 @@ function App() {
       <Route path="/signup" element={<Signup />} />
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/interview" element={<InterviewRoom />} />
+      <Route path="/report/:sessionId" element={<Report />} />
     </Routes>
   );
 }

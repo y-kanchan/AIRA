@@ -69,8 +69,10 @@ async def upload_documents(
         # GitHub
         github_content = ""
         if github_url and github_url.strip():
-            print(f"📥 Fetching GitHub: {github_url}")
-            github_content = rag.fetch_github_content(github_url.strip())
+            urls = [u.strip() for u in github_url.split(",") if u.strip()]
+            for url in urls:
+                print(f"📥 Fetching GitHub: {url}")
+                github_content += rag.fetch_github_content(url) + "\n\n"
 
         print("🧠 Ingesting documents into ChromaDB (this may take a minute for embeddings)...")
         # Ingest into ChromaDB → get combined context
@@ -213,6 +215,18 @@ async def submit_answer(body: AnswerRequest):
         
         overall_score = round(total_score / valid_evals, 1) if valid_evals > 0 else 0
         
+        # Parse the JSON report to store scores natively in MongoDB
+        import json
+        report_data = {}
+        try:
+            report_data = json.loads(report)
+        except Exception:
+            pass
+            
+        # If the LLM returned an overall score, prefer it
+        if "overall_score" in report_data and isinstance(report_data["overall_score"], (int, float)):
+            overall_score = report_data["overall_score"]
+        
         # Save to MongoDB
         session_data = _session_contexts.get(body.session_id, {})
         user_id = session_data.get("user_id")
@@ -222,7 +236,8 @@ async def submit_answer(body: AnswerRequest):
                 "user_id": user_id,
                 "session_id": body.session_id,
                 "created_at": datetime.utcnow().isoformat(),
-                "report": report,
+                "report": report,         # Keep string format for frontend compatibility
+                "metrics": report_data,   # Store all 15 parameters natively in BSON
                 "answers": answers,
                 "overall_score": overall_score,
                 "total_questions": len(answers)
@@ -271,14 +286,24 @@ async def submit_answer(body: AnswerRequest):
 
 @router.get("/report/{session_id}")
 async def get_report(session_id: str):
-    """Return the final evaluation report for a completed session."""
+    """Return the final evaluation report for a completed session from MongoDB or Graph state."""
+    # Check MongoDB first
+    doc = await interviews_collection.find_one({"session_id": session_id})
+    if doc:
+        return {
+            "report": doc.get("report", "{}"),
+            "answers": doc.get("answers", []),
+            "session_id": session_id
+        }
+
+    # Fallback to in-memory state
     state_vals = get_current_state_values(session_id)
     if not state_vals:
         raise HTTPException(404, "Session not found")
     if state_vals.get("status") != "complete":
         raise HTTPException(400, "Interview not yet complete")
     return {
-        "report": state_vals.get("report", ""),
+        "report": state_vals.get("report", "{}"),
         "answers": state_vals.get("answers", []),
         "session_id": session_id
     }

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { FileText, Bot, Briefcase, Activity, Calendar, History, LogOut } from "lucide-react";
+import { FileText, Bot, Briefcase, Activity, Calendar, History, LogOut, Code } from "lucide-react";
 import { useChat } from "../hooks/useChat";
 
 export default function Dashboard() {
@@ -12,9 +12,21 @@ export default function Dashboard() {
   const [jdFile, setJdFile] = useState(null);
   const [jdText, setJdText] = useState("");
   const [jdMode, setJdMode] = useState("file");
-  const [githubUrl, setGithubUrl] = useState("");
+  const [githubUrls, setGithubUrls] = useState([]);
+  const [newGithubUrl, setNewGithubUrl] = useState("");
   const [history, setHistory] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
+
+  const addGithubUrl = () => {
+    if (newGithubUrl.trim() && !githubUrls.includes(newGithubUrl.trim())) {
+      setGithubUrls([...githubUrls, newGithubUrl.trim()]);
+      setNewGithubUrl("");
+    }
+  };
+
+  const removeGithubUrl = (url) => {
+    setGithubUrls(githubUrls.filter(u => u !== url));
+  };
 
   // Authentication & History Fetch
   useEffect(() => {
@@ -60,7 +72,7 @@ export default function Dashboard() {
   const handleStart = async () => {
     if (!resumeFile) return;
     // Trigger upload in global state
-    uploadDocuments({ resumeFile, jdFile, jdText: jdMode === "text" ? jdText : "", githubUrl });
+    uploadDocuments({ resumeFile, jdFile, jdText: jdMode === "text" ? jdText : "", githubUrl: githubUrls.join(",") });
     // Immediately redirect to the interview room to see the loading state
     navigate("/interview");
   };
@@ -144,6 +156,42 @@ export default function Dashboard() {
                 )}
               </div>
 
+              {/* GitHub Links */}
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-blue-300 uppercase tracking-wider flex items-center gap-2">
+                  <Code className="w-4 h-4" /> GitHub Repos (Optional)
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="url"
+                    value={newGithubUrl}
+                    onChange={(e) => setNewGithubUrl(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addGithubUrl())}
+                    placeholder="https://github.com/username/repo"
+                    className="flex-1 bg-gray-900/50 text-white placeholder:text-gray-500 p-4 rounded-xl border border-gray-700 focus:border-blue-500 focus:outline-none text-sm"
+                  />
+                  <button 
+                    type="button" 
+                    onClick={addGithubUrl}
+                    className="px-6 bg-gray-800 hover:bg-gray-700 text-white font-medium rounded-xl border border-gray-700 transition-colors"
+                  >
+                    Add
+                  </button>
+                </div>
+                {githubUrls.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {githubUrls.map((url, i) => (
+                      <span key={i} className="inline-flex items-center gap-2 bg-blue-900/20 text-blue-300 text-xs px-3 py-1.5 rounded-lg border border-blue-800/50">
+                        <span className="truncate max-w-[200px]">{url.replace("https://github.com/", "")}</span>
+                        <button type="button" onClick={() => removeGithubUrl(url)} className="text-blue-400 hover:text-blue-200">
+                          &times;
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {/* Start Button */}
               <button
                 onClick={handleStart}
@@ -198,7 +246,7 @@ export default function Dashboard() {
                 <p className="text-sm text-gray-500 text-center py-4">No interviews completed yet.</p>
               ) : (
                 history.map((item, i) => (
-                  <div key={i} className="bg-gray-950 p-4 rounded-xl border border-gray-800 hover:border-gray-700 transition-colors cursor-pointer group">
+                  <div key={i} onClick={() => item.session_id && navigate(`/report/${item.session_id}`)} className="bg-gray-950 p-4 rounded-xl border border-gray-800 hover:border-indigo-500/50 hover:shadow-lg hover:shadow-indigo-500/10 transition-all cursor-pointer group">
                     <div className="flex justify-between items-start mb-2">
                       <p className="text-sm font-semibold text-white group-hover:text-indigo-300 transition-colors">{item.role}</p>
                       <span className={`text-xs font-bold px-2 py-1 rounded-md ${

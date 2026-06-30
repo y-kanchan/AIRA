@@ -143,9 +143,26 @@ def generate_interview_report(answers: List[dict], context: str) -> str:
         if answers else 0
     )
 
-    system = "You are an expert technical interviewer writing a final evaluation report."
+    system = "You are an expert technical interviewer writing a final evaluation report. Return ONLY a valid JSON object."
 
-    prompt = f"""Write a comprehensive interview evaluation report.
+    prompt = f"""Evaluate this entire interview and return a JSON object with EXACTLY these 15 parameters:
+{{
+  "overall_score": <1-10>,
+  "confidence_score": <1-10>,
+  "technical_depth": <1-10>,
+  "clarity_and_communication": <1-10>,
+  "problem_solving_ability": <1-10>,
+  "ai_detection_probability": <0-100 integer representing %>,
+  "industry_readiness": <1-10>,
+  "cultural_fit": <1-10>,
+  "leadership_potential": <1-10>,
+  "critical_thinking": <1-10>,
+  "domain_knowledge": <1-10>,
+  "grammar_and_fluency": <1-10>,
+  "handling_ambiguity": <1-10>,
+  "key_strengths": ["<strength1>", "<strength2>"],
+  "areas_for_improvement": ["<improvement1>", "<improvement2>"]
+}}
 
 Candidate Context:
 {context[:1500]}
@@ -153,16 +170,17 @@ Candidate Context:
 Interview Q&A:
 {answers_text}
 
-Average Score: {avg_score:.1f}/10
-
-Write a professional report with:
-1. Overall Assessment (2-3 sentences)
-2. Technical Strengths (bullet points)
-3. Areas for Improvement (bullet points)
-4. Hiring Recommendation (Strong Yes / Yes / Maybe / No)
-5. Final Score: {avg_score:.1f}/10"""
-
-    return _chat(prompt, system, temperature=0.4)
+Return ONLY valid JSON.
+"""
+    raw = _chat(prompt, system, temperature=0.4)
+    try:
+        start = raw.find("{")
+        end = raw.rfind("}") + 1
+        if start != -1 and end > start:
+            return raw[start:end]
+    except Exception:
+        pass
+    return "{}"
 
 
 def generate_avatar_response(text: str) -> dict:
