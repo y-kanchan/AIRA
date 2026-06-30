@@ -17,39 +17,56 @@ It leverages the blazing-fast **Groq API (Llama-3.3-70B-Versatile)** to generate
 
 ---
 
-## 🏗️ System Architecture
+## 🏗️ System Architecture & Multi-Agent Workflow
 
-```text
-1️⃣ Candidate Uploads Documents (Resume PDF, JD, GitHub Link)
-      ↓
-2️⃣ Document Processing & RAG Ingestion
-      ├── pdfplumber extracts text from PDFs
-      ├── Sentence-Transformers creates embeddings
-      └── ChromaDB stores vectorized document chunks
-      ↓
-3️⃣ Interview Orchestration (LangGraph)
-      ├── Initializes interview state machine
-      ├── Groq API analyzes candidate context and generates targeted questions
-      └── Evaluates candidate answers in real-time
-      ↓
-4️⃣ Audio & Animation Synthesis
-      ├── Sarvam AI generates high-fidelity Indian-accented English TTS audio
-      └── Rhubarb generates phonetic mouth cues (lip-sync JSON) from audio
-      ↓
-5️⃣ Frontend Rendering
-      ├── React Three Fiber renders the 3D Avatar model
-      └── Avatar dynamically speaks and animates based on the generated lip-sync
+The platform utilizes an advanced **LangGraph Multi-Agent Architecture** divided into two highly optimized phases: **Parallel Ingestion** and the **Zero-Delay Adaptive Queue**.
+
+### 1. Phase 1: Parallel Document Ingestion (Map-Reduce)
+When a user uploads multiple documents, the system uses LangGraph's `Send` API to spawn dynamic agents.
+*   **Dynamic Agents**: If you provide 1 Resume, 1 JD, and 3 GitHub Repos, the Router spawns **5 independent agents** simultaneously. 
+*   **Latency Improvement**: Network-heavy scraping (GitHub) and CPU-heavy chunking (PDFs) happen in parallel. Processing 5 documents takes the same time as processing 1 document.
+
+### 2. Phase 2: Hybrid Adaptive Queue (Zero-Delay)
+We eliminated traditional "round-based" delays by moving all LLM processing to the background.
+*   **Instant UI Popping**: When you submit an answer, the API instantly pops the next pre-generated question from MongoDB. The transition takes **0.0 seconds**, ensuring a fluid, human-like conversation.
+*   **Background Evaluator Agent**: While you are reading the next question, an independent background agent analyzes your previous response, updates your score, and notes strengths/weaknesses.
+*   **Background Generator Agent**: Another agent dynamically generates 1-2 new tailored questions (harder if you did well, simpler if you struggled) and appends them to your active queue, ensuring you never run out.
+*   **Reporting Agent**: Once the interview completes, a final agent scans the entire transcript to generate a comprehensive 15-parameter evaluation JSON.
+
+```mermaid
+graph TD
+    subgraph "Phase 1: Multi-Agent Ingestion"
+        StartIngest([Upload Documents]) --> Router[Router]
+        Router -- "Parallel" --> A1[Agent: Parse Resume]
+        Router -- "Parallel" --> A2[Agent: Parse JD]
+        Router -- "Parallel" --> A3[Agent: Scrape GitHubs]
+        A1 & A2 & A3 --> Reducer[Reducer: Embed to ChromaDB]
+    end
+
+    Reducer --> StartInterview([Start Interview])
+
+    subgraph "Phase 2: Background Adaptive Queue"
+        StartInterview --> GenQ[Generator Agent: Build Initial Queue]
+        GenQ --> UI
+        
+        UI((User Answers & Instantly Gets Next Question)) --> EvalAns[Background Evaluator Agent: Grade Answer]
+        EvalAns --> GenQ2[Background Generator Agent: Create Adaptive Questions]
+        GenQ2 -- "Replenishes" --> Queue[(MongoDB: Question Queue)]
+        Queue -. "Pops instantly" .-> UI
+        
+        UI -- "Max questions reached" --> GenReport[Reporting Agent: 15-Parameter Output]
+    end
 ```
 
 ---
 
 ## 🎯 Core Features
 
-* **Context-Aware Interviewing**: Instead of generic questions, the AI asks hyper-personalized questions derived directly from the candidate's actual resume and the specific job description.
-* **Stateful Follow-ups**: Using LangGraph, the AI remembers previous answers and asks deep follow-up questions to probe technical depth.
-* **Ultra-Fast Generation**: Powered by Groq, the time from answer submission to the next question generation is almost instantaneous.
-* **Immersive 3D Avatar**: Real-time rendering of an expressive 3D tutor/interviewer using Three.js and React.
-* **Automated Evaluation**: At the end of the interview session, the system generates a comprehensive feedback report scoring the candidate's performance.
+*   **Zero-Delay Interactions**: Next-generation background queueing ensures the user never has to wait for an LLM to generate the next question.
+*   **Multi-Agent Ingestion**: Parallel processing of Resumes, JDs, and GitHub repositories using LangGraph.
+*   **Context-Aware Interviewing**: Hyper-personalized technical questions derived directly from the candidate's actual resume and GitHub code.
+*   **Immersive 3D Avatar**: Real-time rendering of an expressive 3D tutor/interviewer using Three.js and React.
+*   **Automated Evaluation**: 15-parameter feedback report (Confidence, AI Detection, Technical Depth, etc.) available on the dashboard.
 
 ---
 
