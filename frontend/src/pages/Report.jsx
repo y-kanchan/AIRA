@@ -152,6 +152,18 @@ export default function Report() {
                       <p className="text-sm text-gray-200 mt-1 font-medium">{item.question}</p>
                     </div>
                     
+                    <div className="flex gap-3 mb-2 pl-11">
+                      {(item.source_tags && item.source_tags.length > 0) && (
+                        <div className="flex gap-2">
+                          {item.source_tags.map((tag, idx) => (
+                            <span key={idx} className="bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded text-[10px] uppercase border border-indigo-500/30">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    
                     <div className="flex gap-3 mb-4 pl-11">
                       <p className="text-sm text-gray-400 italic">"{item.answer}"</p>
                     </div>

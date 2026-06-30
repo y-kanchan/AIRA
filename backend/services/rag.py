@@ -163,12 +163,25 @@ def ingest_documents(
         collection.add(documents=all_docs, ids=all_ids, metadatas=all_metas)
 
     # Build concise context summary for LLM prompts
-    context = (
-        f"=== RESUME ===\n{resume_text[:2000]}\n\n"
-        f"=== JOB DESCRIPTION ===\n{jd_text[:1500]}\n\n"
-        f"=== GITHUB PROJECT ===\n{github_text[:1000]}"
-    )
-    return context
+    context_parts = []
+    provided_sources = []
+    if resume_text.strip():
+        context_parts.append(f"=== RESUME ===\n{resume_text[:2000]}")
+        provided_sources.append("Resume")
+    if jd_text.strip():
+        context_parts.append(f"=== JOB DESCRIPTION ===\n{jd_text[:1500]}")
+        provided_sources.append("JD")
+    if github_text.strip():
+        context_parts.append(f"=== GITHUB PROJECT ===\n{github_text[:1000]}")
+        provided_sources.append("GitHub")
+        
+    context = "\n\n".join(context_parts)
+    
+    import json
+    return json.dumps({
+        "context": context,
+        "provided_sources": provided_sources
+    })
 
 
 def retrieve_context(query: str, session_id: str, n_results: int = 5) -> str:

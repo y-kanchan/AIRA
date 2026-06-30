@@ -236,8 +236,13 @@ export const UI = ({ hidden, showControls = true, showChat = true }) => {
                         AI
                       </div>
                       <div>
-                        <p className="text-indigo-200 text-xs font-semibold mb-1">
-                          Round {currentQuestion?.round} · Question {(currentQuestion?.q_idx ?? 0) + 1} of {currentQuestion?.total_questions}
+                        <p className="text-indigo-200 text-xs font-semibold mb-1 flex items-center gap-2">
+                          <span>Round {currentQuestion?.round} · Question {(currentQuestion?.q_idx ?? 0) + 1} of {currentQuestion?.total_questions}</span>
+                          {(currentQuestion?.source_tags || []).map((tag, i) => (
+                            <span key={i} className="bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded text-[10px] uppercase border border-indigo-500/30">
+                              {tag}
+                            </span>
+                          ))}
                         </p>
                         {loading ? (
                           <div className="flex gap-1.5 py-2">
@@ -267,7 +272,14 @@ export const UI = ({ hidden, showControls = true, showChat = true }) => {
                   <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
                     {answers.slice().reverse().map((item, i) => (
                       <div key={i} className="bg-gray-900/60 rounded-xl p-3 border border-gray-800">
-                        <p className="text-gray-400 text-xs mb-1 font-medium">Q: {item.question}</p>
+                        <p className="text-gray-400 text-xs mb-1 font-medium flex items-center gap-2">
+                          <span>Q: {item.question}</span>
+                          {(item.source_tags || []).map((tag, idx) => (
+                            <span key={idx} className="bg-indigo-500/10 text-indigo-400 px-1.5 py-0.5 rounded text-[9px] uppercase border border-indigo-500/20">
+                              {tag}
+                            </span>
+                          ))}
+                        </p>
                         <p className="text-gray-200 text-sm">A: {item.answer}</p>
                       </div>
                     ))}

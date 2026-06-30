@@ -21,9 +21,9 @@ from langgraph.types import interrupt
 class InterviewState(TypedDict):
     session_id: str
     context: str
-    questions: List[str]
+    questions: List[dict]
     current_q_idx: int
-    current_question: str
+    current_question: dict
     current_answer: Optional[str]
     answers: List[dict]
     round: int
@@ -54,8 +54,13 @@ def generate_questions_node(state: InterviewState) -> dict:
 
 def ask_question_node(state: InterviewState) -> dict:
     """Pause here and wait for the user's answer via the REST API."""
+    question_obj = state["current_question"]
+    question_text = question_obj.get("question", "") if isinstance(question_obj, dict) else question_obj
+    source_tags = question_obj.get("source_tags", []) if isinstance(question_obj, dict) else []
+
     answer = interrupt({
-        "question": state["current_question"],
+        "question": question_text,
+        "source_tags": source_tags,
         "q_idx": state["current_q_idx"],
         "round": state["round"],
         "total_questions": len(state["questions"])
@@ -65,13 +70,19 @@ def ask_question_node(state: InterviewState) -> dict:
 
 def evaluate_answer_node(state: InterviewState) -> dict:
     from services.ollama_client import evaluate_answer
+    
+    question_obj = state["current_question"]
+    question_text = question_obj.get("question", "") if isinstance(question_obj, dict) else question_obj
+    source_tags = question_obj.get("source_tags", []) if isinstance(question_obj, dict) else []
+
     evaluation = evaluate_answer(
-        question=state["current_question"],
+        question=question_text,
         answer=state["current_answer"] or "",
         context=state["context"]
     )
     answer_record = {
-        "question": state["current_question"],
+        "question": question_text,
+        "source_tags": source_tags,
         "answer": state["current_answer"] or "",
         "round": state["round"],
         "score": evaluation.get("score", 5),

@@ -2,24 +2,17 @@
 import os
 import uuid
 import traceback
+import json
 from pathlib import Path
 from typing import Optional
 
-from fastapi import APIRouter, File, Form, UploadFile, HTTPException, Depends
+from fastapi import APIRouter, File, Form, UploadFile, HTTPException, Depends, BackgroundTasks
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from datetime import datetime
-from langgraph.types import Command
 
 from services import rag, sarvam_tts
-from services.interview_graph import (
-    interview_graph,
-    get_thread_config,
-    get_interrupt_info,
-    get_current_state_values,
-    InterviewState
-)
-from services.ollama_client import generate_avatar_response
+from services.ollama_client import generate_avatar_response, generate_interview_questions
 from services.auth_utils import get_current_user
 from db import interviews_collection
 
@@ -28,8 +21,7 @@ router = APIRouter(prefix="/interview", tags=["interview"])
 UPLOADS_DIR = Path(__file__).parent.parent.parent / "uploads"
 UPLOADS_DIR.mkdir(exist_ok=True)
 
-MAX_ROUNDS = int(os.getenv("MAX_INTERVIEW_ROUNDS", 2))
-QUESTIONS_PER_ROUND = int(os.getenv("QUESTIONS_PER_ROUND", 5))
+MAX_INTERVIEW_QUESTIONS = int(os.getenv("MAX_INTERVIEW_QUESTIONS", 5))
 
 
 # ── Upload & Ingest ───────────────────────────────────────────────────────────
@@ -49,39 +41,44 @@ async def upload_documents(
     session_id = str(uuid.uuid4()).replace("-", "")[:16]
 
     try:
-        # Save and extract resume
+        # Collect all documents for parallel processing
+        documents_to_process = []
+
+        # 1. Resume
         resume_path = UPLOADS_DIR / f"{session_id}_resume.pdf"
         resume_path.write_bytes(await resume.read())
-        resume_text = rag.extract_pdf_text(str(resume_path))
+        documents_to_process.append({"doc_type": "resume", "content": str(resume_path)})
+        print(f"📥 Queued Resume: {resume_path.name}")
 
-        print(f"📥 Received documents! Resume: {resume_path.name}")
-
-        # JD: prefer file, fallback to plain text
+        # 2. JD
         if jd and jd.filename:
             jd_path = UPLOADS_DIR / f"{session_id}_jd.pdf"
             jd_path.write_bytes(await jd.read())
-            jd_content = rag.extract_pdf_text(str(jd_path))
-            print(f"📥 Received JD file: {jd_path.name}")
-        else:
-            jd_content = jd_text or "No job description provided."
-            print("📥 Received JD as text.")
+            documents_to_process.append({"doc_type": "jd_file", "content": str(jd_path)})
+            print(f"📥 Queued JD file: {jd_path.name}")
+        elif jd_text:
+            documents_to_process.append({"doc_type": "jd_text", "content": jd_text})
+            print("📥 Queued JD text.")
 
-        # GitHub
-        github_content = ""
+        # 3. GitHub (multiple links supported)
         if github_url and github_url.strip():
             urls = [u.strip() for u in github_url.split(",") if u.strip()]
             for url in urls:
-                print(f"📥 Fetching GitHub: {url}")
-                github_content += rag.fetch_github_content(url) + "\n\n"
+                documents_to_process.append({"doc_type": "github", "content": url})
+                print(f"📥 Queued GitHub: {url}")
 
-        print("🧠 Ingesting documents into ChromaDB (this may take a minute for embeddings)...")
-        # Ingest into ChromaDB → get combined context
-        context = rag.ingest_documents(
-            session_id=session_id,
-            resume_text=resume_text,
-            jd_text=jd_content,
-            github_text=github_content
-        )
+        print("🚀 Dispatching documents to parallel multi-agent graph...")
+        from services.ingest_graph import ingest_graph
+        
+        # Run the multi-agent graph asynchronously
+        final_state = await ingest_graph.ainvoke({
+            "session_id": session_id,
+            "documents": documents_to_process,
+            "processed_docs": [],
+            "context_summary": ""
+        })
+
+        context = final_state["context_summary"]
 
         # Persist context and user_id for graph initialization
         _session_contexts[session_id] = {
@@ -91,10 +88,8 @@ async def upload_documents(
 
         return {
             "session_id": session_id,
-            "resume_chars": len(resume_text),
-            "jd_chars": len(jd_content),
-            "github_chars": len(github_content),
-            "message": "Documents ingested successfully"
+            "message": "Documents processed by agents successfully",
+            "agents_dispatched": len(documents_to_process)
         }
 
     except Exception as e:
@@ -106,70 +101,97 @@ async def upload_documents(
 _session_contexts: dict = {}
 
 
+# ── Helper ────────────────────────────────────────────────────────────────────
+
+def _synthesize_question(text: str, session_id: str, q_idx: int) -> dict:
+    """Run TTS + rhubarb for a question. Returns audio + lipsync dicts."""
+    try:
+        stem = f"{session_id}_q{q_idx}"
+        return sarvam_tts.synthesize(text, stem)
+    except Exception as e:
+        print(f"⚠️ TTS failed: {e}")
+        return {"audio": None, "lipsync": {"mouthCues": []}, "audio_url": None}
+
+async def pre_generate_initial_tts(session_id: str, initial_queue: list):
+    """Background task to pre-generate TTS for the initial queue."""
+    import asyncio
+    updated_queue = []
+    for idx, q_obj in enumerate(initial_queue):
+        print(f"🎙️ [Background] Pre-generating TTS for initial queue question {idx+1}...")
+        try:
+            stem = f"{session_id}_init_q{idx+1}"
+            # Run the synchronous blocking TTS generation in a background thread to prevent event loop freezing
+            audio_data = await asyncio.to_thread(sarvam_tts.synthesize, q_obj["question"], stem)
+            q_obj["audio_data"] = audio_data
+        except Exception as e:
+            print(f"⚠️ [Background] TTS pre-generation failed: {e}")
+            q_obj["audio_data"] = {"audio": None, "lipsync": {"mouthCues": []}, "audio_url": None}
+        updated_queue.append(q_obj)
+        
+    # Overwrite the queue in DB with audio-injected queue
+    await interviews_collection.update_one(
+        {"session_id": session_id},
+        {"$set": {"question_queue": updated_queue}}
+    )
+    print("✅ [Background] Finished pre-generating TTS for initial queue.")
+
 # ── Start Interview ───────────────────────────────────────────────────────────
 
 @router.post("/start/{session_id}")
-async def start_interview(session_id: str):
-    """
-    Initialize the LangGraph interview and return the first question
-    with TTS audio + lipsync for the avatar.
-    """
-    print(f"🚀 Starting interview for session: {session_id}")
+async def start_interview(session_id: str, background_tasks: BackgroundTasks, user_id: str = Depends(get_current_user)):
+    """Initialize the interview and return the first question immediately."""
     if session_id not in _session_contexts:
-        raise HTTPException(404, "Session not found. Upload documents first.")
-
-    session_data = _session_contexts[session_id]
-    context = session_data["context"]
-    config = get_thread_config(session_id)
-
-    initial_state = InterviewState(
-        session_id=session_id,
-        context=context,
-        questions=[],
-        current_q_idx=0,
-        current_question="",
-        current_answer=None,
-        answers=[],
-        round=1,
-        max_rounds=MAX_ROUNDS,
-        questions_per_round=QUESTIONS_PER_ROUND,
-        status="questioning",
-        report=None,
-        last_evaluation=None
-    )
-
+        raise HTTPException(404, "Session context not found")
+        
+    context_raw = _session_contexts[session_id]["context"]
+    
     try:
-        # Run graph — stops at first interrupt (ask_question)
-        interview_graph.invoke(initial_state, config)
-    except Exception as e:
-        if "GraphInterrupt" not in type(e).__name__ and "interrupt" not in str(e).lower():
-            traceback.print_exc()
-            raise HTTPException(500, f"Graph error: {e}")
-
-    # Extract the interrupt payload (first question)
-    interrupt_info = get_interrupt_info(session_id)
-    if not interrupt_info:
-        raise HTTPException(500, "Graph did not produce a question")
-
-    question_text = interrupt_info.get("question", "Tell me about yourself.")
-    q_idx = interrupt_info.get("q_idx", 0)
-    total = interrupt_info.get("total_questions", QUESTIONS_PER_ROUND)
-    round_num = interrupt_info.get("round", 1)
-
-    print(f"🎙️ Generating TTS and lipsync for: {question_text}")
-    audio_data = _synthesize_question(question_text, session_id, q_idx)
-    avatar_meta = generate_avatar_response(question_text)
-    print("✅ Question ready! Sending to frontend.")
-
-    return {
+        context_data = json.loads(context_raw)
+        context = context_data.get("context", context_raw)
+        provided_sources = context_data.get("provided_sources", ["General"])
+    except:
+        context = context_raw
+        provided_sources = ["General"]
+    
+    # Generate initial 3-5 questions
+    print(f"🚀 Generating initial question queue using sources: {provided_sources}...")
+    initial_questions = generate_interview_questions(context, [], 1, 4, provided_sources)
+    
+    if not initial_questions:
+        raise HTTPException(500, "Failed to generate initial questions")
+        
+    first_question = initial_questions.pop(0)
+    
+    # Save the session to MongoDB instantly
+    session_doc = {
         "session_id": session_id,
-        "question": question_text,
-        "q_idx": q_idx,
-        "round": round_num,
-        "total_questions": total,
-        "max_rounds": MAX_ROUNDS,
+        "user_id": user_id,
+        "context": context,
+        "provided_sources": provided_sources,
+        "question_queue": initial_questions,
+        "answers": [],
+        "status": "interviewing",
+        "total_asked": 1,
+        "current_question": first_question,
+        "created_at": datetime.utcnow().isoformat()
+    }
+    await interviews_collection.insert_one(session_doc)
+    
+    print(f"🎙️ Generating TTS and lipsync for: {first_question['question']}")
+    audio_data = _synthesize_question(first_question["question"], session_id, 0)
+    avatar_data = generate_avatar_response(first_question["question"])
+    
+    # Trigger background task to synthesize audio for the rest of the queue
+    background_tasks.add_task(pre_generate_initial_tts, session_id, initial_questions)
+    
+    return {
+        "question": first_question["question"],
+        "source_tags": first_question.get("source_tags", []),
+        "q_idx": 0,
+        "round": 1,
+        "total_questions": MAX_INTERVIEW_QUESTIONS,
         **audio_data,
-        **avatar_meta
+        **avatar_data
     }
 
 
@@ -181,104 +203,77 @@ class AnswerRequest(BaseModel):
 
 
 @router.post("/answer")
-async def submit_answer(body: AnswerRequest):
-    """
-    Resume the LangGraph graph with the candidate's answer.
-    Returns the next question (with audio) or the final report.
-    """
-    config = get_thread_config(body.session_id)
-
-    try:
-        interview_graph.invoke(Command(resume=body.answer), config)
-    except Exception as e:
-        if "GraphInterrupt" not in type(e).__name__ and "interrupt" not in str(e).lower():
-            traceback.print_exc()
-            raise HTTPException(500, f"Graph error: {e}")
-
-    state_vals = get_current_state_values(body.session_id)
-
-    # Check if interview is complete
-    if state_vals.get("status") == "complete":
-        report = state_vals.get("report", "Interview complete.")
-        answers = state_vals.get("answers", [])
+async def submit_answer(body: AnswerRequest, background_tasks: BackgroundTasks, user_id: str = Depends(get_current_user)):
+    """Submit an answer, instantly pop the next question from the queue, and evaluate in the background."""
+    doc = await interviews_collection.find_one({"session_id": body.session_id})
+    if not doc:
+        raise HTTPException(404, "Interview session not found")
         
-        # Calculate overall score based on answer evaluations
-        total_score = 0
-        valid_evals = 0
-        for ans in answers:
-            if "evaluation" in ans and ans["evaluation"] and "score" in ans["evaluation"]:
-                try:
-                    total_score += int(ans["evaluation"]["score"])
-                    valid_evals += 1
-                except (ValueError, TypeError):
-                    pass
+    current_question = doc.get("current_question")
+    if not current_question:
+        raise HTTPException(400, "No active question to answer")
         
-        overall_score = round(total_score / valid_evals, 1) if valid_evals > 0 else 0
-        
-        # Parse the JSON report to store scores natively in MongoDB
-        import json
-        report_data = {}
-        try:
-            report_data = json.loads(report)
-        except Exception:
-            pass
-            
-        # If the LLM returned an overall score, prefer it
-        if "overall_score" in report_data and isinstance(report_data["overall_score"], (int, float)):
-            overall_score = report_data["overall_score"]
-        
-        # Save to MongoDB
-        session_data = _session_contexts.get(body.session_id, {})
-        user_id = session_data.get("user_id")
-        
-        if user_id:
-            new_interview = {
-                "user_id": user_id,
-                "session_id": body.session_id,
-                "created_at": datetime.utcnow().isoformat(),
-                "report": report,         # Keep string format for frontend compatibility
-                "metrics": report_data,   # Store all 15 parameters natively in BSON
-                "answers": answers,
-                "overall_score": overall_score,
-                "total_questions": len(answers)
+    # Create unevaluated answer record
+    new_answer = {
+        "question": current_question.get("question", ""),
+        "source_tags": current_question.get("source_tags", []),
+        "answer": body.answer,
+        "score": 0,
+        "feedback": ""
+    }
+    
+    queue = doc.get("question_queue", [])
+    total_asked = doc.get("total_asked", 0)
+    MAX_QUESTIONS = MAX_INTERVIEW_QUESTIONS
+    
+    # Check completion
+    if total_asked >= MAX_QUESTIONS or not queue:
+        # Finish the interview
+        await interviews_collection.update_one(
+            {"session_id": body.session_id},
+            {
+                "$push": {"answers": new_answer},
+                "$set": {"status": "complete", "current_question": None}
             }
-            await interviews_collection.insert_one(new_interview)
-            
-        return {
-            "complete": True,
-            "report": report,
-            "answers": answers,
-            "total_questions": len(answers)
+        )
+        print("✅ Interview complete. Triggering background final report generation...")
+        from services.adaptive_graph import run_background_evaluation
+        background_tasks.add_task(run_background_evaluation, body.session_id, new_answer, True)
+        
+        return {"complete": True}
+
+    # Instant Pop
+    next_question = queue.pop(0)
+    total_asked += 1
+    
+    # Update DB quickly
+    await interviews_collection.update_one(
+        {"session_id": body.session_id},
+        {
+            "$push": {"answers": new_answer},
+            "$set": {"question_queue": queue, "current_question": next_question, "total_asked": total_asked}
         }
-
-    # Get next question from interrupt
-    interrupt_info = get_interrupt_info(body.session_id)
-    if not interrupt_info:
-        raise HTTPException(500, "Graph error: no next question produced")
-
-    question_text = interrupt_info.get("question", "")
-    q_idx = interrupt_info.get("q_idx", 0)
-    round_num = interrupt_info.get("round", 1)
-    total = interrupt_info.get("total_questions", QUESTIONS_PER_ROUND)
-    last_eval = state_vals.get("last_evaluation", {})
-
-    # TTS + lipsync for next question
-    audio_data = _synthesize_question(question_text, body.session_id, q_idx)
-    avatar_meta = generate_avatar_response(question_text)
-
+    )
+    
+    # Background Evaluation & Adaptive Queue Replenishment
+    from services.adaptive_graph import run_background_evaluation
+    background_tasks.add_task(run_background_evaluation, body.session_id, new_answer, False)
+    
+    print(f"🎙️ Fast returning next question (TTS Pre-generated): {next_question['question']}")
+    q_index = total_asked - 1
+    
+    # Grab the pre-generated audio dict (fallback if it failed or hasn't finished yet)
+    audio_data = next_question.get("audio_data", {"audio": None, "lipsync": {"mouthCues": []}})
+    avatar_data = generate_avatar_response(next_question["question"])
+    
     return {
-        "complete": False,
-        "question": question_text,
-        "q_idx": q_idx,
-        "round": round_num,
-        "total_questions": total,
-        "max_rounds": MAX_ROUNDS,
-        "evaluation": {
-            "score": last_eval.get("score"),
-            "feedback": last_eval.get("feedback", "")
-        },
+        "question": next_question["question"],
+        "source_tags": next_question.get("source_tags", []),
+        "q_idx": q_index,
+        "round": 1,
+        "total_questions": MAX_QUESTIONS,
         **audio_data,
-        **avatar_meta
+        **avatar_data
     }
 
 

@@ -30,7 +30,8 @@ def generate_interview_questions(
     context: str,
     previous_answers: List[dict],
     round_num: int,
-    count: int = 5
+    count: int = 5,
+    provided_sources: List[str] = None
 ) -> List[str]:
     """Generate interview questions based on resume/JD context and prior answers."""
     prior_text = ""
@@ -38,12 +39,23 @@ def generate_interview_questions(
         prior_text = "\n\nPrevious answers (for follow-up context):\n"
         for i, a in enumerate(previous_answers[-5:], 1):
             prior_text += f"Q{i}: {a['question']}\nA: {a['answer']}\n"
+            
+    if not provided_sources:
+        provided_sources = []
+        
+    # Hardcoded conceptual tags to provide a rich variety of categorizations
+    conceptual_tags = ["Fundamental", "Core Subject", "System Design", "Behavioral", "General"]
+    for tag in conceptual_tags:
+        if tag not in provided_sources:
+            provided_sources.append(tag)
+        
+    sources_str = ", ".join(f"'{s}'" for s in provided_sources)
 
     system = (
         "You are an expert technical interviewer. Generate targeted interview questions "
-        "based on the candidate's resume, job description, and GitHub projects. "
+        "based on the candidate's provided context. "
         "Questions should be specific, probing technical depth and practical experience. "
-        "Return ONLY a JSON array of question strings, no other text."
+        "Return ONLY a JSON array of objects, where each object has 'question' and 'source_tags'."
     )
 
     prompt = f"""Round {round_num} Interview Questions
@@ -52,10 +64,14 @@ Candidate context:
 {context}
 {prior_text}
 
-Generate exactly {count} interview questions for round {round_num}.
+Generate exactly {count} interview questions.
 {"Make these follow-up questions that dig deeper into weak areas from previous answers." if round_num > 1 else "Cover technical skills, projects, and role fit."}
 
-Return ONLY a valid JSON array like: ["Question 1?", "Question 2?", ...]"""
+IMPORTANT INSTRUCTIONS FOR TAGS:
+You must strictly assign 1-2 source tags for each question from THIS EXACT LIST ONLY: [{sources_str}].
+Do NOT invent new tags. Do NOT use tags for documents that are not in this list.
+
+Return ONLY a valid JSON array like: [{{"question": "Q1?", "source_tags": ["{provided_sources[0]}"]}}]"""
 
     raw = _chat(prompt, system, temperature=0.6)
 
@@ -70,16 +86,60 @@ Return ONLY a valid JSON array like: ["Question 1?", "Question 2?", ...]"""
     except json.JSONDecodeError:
         pass
 
-    # Fallback: parse line by line
-    lines = [l.strip().lstrip("0123456789.-) ").strip() for l in raw.split("\n") if l.strip()]
-    questions = [l for l in lines if "?" in l or len(l) > 20]
-    return questions[:count] if questions else [
-        "Tell me about your most challenging technical project.",
-        "How do you approach debugging complex issues?",
-        "Describe your experience with the technologies in your resume.",
-        "What is your greatest professional achievement?",
-        "Where do you see yourself growing technically?"
+    # Fallback
+    return [
+        {"question": "Tell me about your most challenging technical project.", "source_tags": ["General"]},
+        {"question": "How do you approach debugging complex issues?", "source_tags": ["General"]},
+        {"question": "Describe your experience with the technologies in your resume.", "source_tags": ["Resume"]},
+        {"question": "What is your greatest professional achievement?", "source_tags": ["General"]},
+        {"question": "Where do you see yourself growing technically?", "source_tags": ["General"]}
     ]
+
+
+def generate_adaptive_questions(evaluation: dict, context: str, previous_answers: List[dict]) -> List[dict]:
+    """Generate 1-2 new questions based on the candidate's last answer score."""
+    score = evaluation.get("score", 5)
+    feedback = evaluation.get("feedback", "")
+    
+    if score >= 8:
+        direction = "The last answer was STRONG. Increase difficulty significantly or shift to a more complex related topic."
+    elif score >= 5:
+        direction = "The last answer was MODERATE. Generate a deeper follow-up question on the exact same topic to probe understanding."
+    else:
+        direction = "The last answer was WEAK. Simplify the concept or ask a foundational question to check basic knowledge."
+
+    system = "You are an expert technical interviewer adapting to the candidate's skill level. Return ONLY a JSON array of objects."
+
+    allowed_tags = ["Adaptive", "Fundamental", "Core Subject", "Deep Dive", "System Design", "General"]
+    sources_str = ", ".join(f"'{s}'" for s in allowed_tags)
+
+    prompt = f"""Generate 1 or 2 adaptive follow-up questions.
+
+Evaluation of last answer:
+Score: {score}/10
+Feedback: {feedback}
+
+Strategy: {direction}
+
+Candidate Context:
+{context[:1000]}
+
+IMPORTANT INSTRUCTIONS FOR TAGS:
+You must strictly assign 1-2 source tags for each question from THIS EXACT LIST ONLY: [{sources_str}]. One of the tags MUST be 'Adaptive'.
+
+Return ONLY a valid JSON array like: [{{"question": "Q1?", "source_tags": ["Adaptive", "Fundamental"]}}]"""
+
+    raw = _chat(prompt, system, temperature=0.6)
+    try:
+        start = raw.find("[")
+        end = raw.rfind("]") + 1
+        import json
+        if start != -1 and end > start:
+            return json.loads(raw[start:end])
+    except Exception:
+        pass
+        
+    return [{"question": "Could you elaborate more on your previous point?", "source_tags": ["Adaptive"]}]
 
 
 def evaluate_answer(question: str, answer: str, context: str) -> dict:
