@@ -38,26 +38,42 @@ Traditional AI interviews suffer from a "stop-and-think" bottleneck where the UI
     3.  **Queue Replenisher**: The generator yields 1-2 new, hyper-tailored questions and pushes them into the active MongoDB queue, ensuring the pre-generated stack never runs dry.
 
 ```mermaid
-sequenceDiagram
-    participant Candidate
-    participant FastAPIServer
-    participant MongoDB as Active Queue
-    participant LangGraph as Background Agents
+graph TD
+    %% Styling
+    classDef ui fill:#4f46e5,stroke:#fff,stroke-width:2px,color:#fff;
+    classDef db fill:#059669,stroke:#fff,stroke-width:2px,color:#fff;
+    classDef agent fill:#db2777,stroke:#fff,stroke-width:2px,color:#fff;
 
-    Candidate->>FastAPIServer: Submits Answer 1
-    FastAPIServer->>MongoDB: pop() next question
-    MongoDB-->>FastAPIServer: Question 2
-    FastAPIServer-->>Candidate: Return Question 2 (0.0s Delay)
-
-    note over FastAPIServer,LangGraph: Asynchronous Detached Execution
-    par Candidate Formulates Answer
-        Candidate->>Candidate: Thinking & Speaking...
-    and Background LangGraph Execution
-        FastAPIServer->>LangGraph: Trigger Adaptive Graph
-        LangGraph->>LangGraph: Evaluator Agent: Grade Answer 1
-        LangGraph->>LangGraph: Generator Agent: Create Q3 & Q4
-        LangGraph->>MongoDB: push() Q3 & Q4 to Active Queue
+    subgraph "Phase 1: Dynamic Parallel Ingestion"
+        Upload([User Uploads Documents]) --> Router{Router: Dynamic Dispatch}
+        
+        Router -- "Send API (Parallel Thread 1)" --> A1[Extractor Agent: Resume]:::agent
+        Router -- "Send API (Parallel Thread 2)" --> A2[Extractor Agent: JD]:::agent
+        Router -- "Send API (Parallel Thread 3..N)" --> A3[Scraper Agent: GitHub 1..N]:::agent
+        
+        A1 & A2 & A3 --> Reducer[Reducer: Vector Embeddings]
+        Reducer --> Chroma[(ChromaDB)]:::db
     end
+
+    Chroma --> InitQueue
+
+    subgraph "Phase 2: Hybrid Adaptive Queue (Zero-Delay Loop)"
+        InitQueue[Generator Agent: Build Initial 5 Questions]:::agent --> QQueue[(MongoDB: Active Question Queue)]:::db
+        
+        UI((Frontend UI: Candidate Interface)):::ui -- "1. Submits Answer" --> FastPop
+        
+        FastPop{FastAPI Endpoint} -- "2. pop() 0.0s delay" --> QQueue
+        QQueue -- "3. Returns Next Question" --> FastPop
+        FastPop -- "4. Instantly Shows Next Question" --> UI
+        
+        FastPop -- "5. Spawns Detached Task" --> BackgroundTask[[FastAPI Background Task]]
+        
+        BackgroundTask --> EvalAns[Evaluator Agent: Grade Answer & Find Weaknesses]:::agent
+        EvalAns --> GenAns[Generator Agent: Shift Strategy based on Score]:::agent
+        GenAns -- "6. Replenishes 1-2 new Adaptive Questions" --> QQueue
+    end
+    
+    UI -- "Interview Finished" --> FinalReport[Reporting Agent: 15-Parameter JSON Report]:::agent
 ```
 
 ---
