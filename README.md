@@ -19,42 +19,44 @@ It leverages the blazing-fast **Groq API (Llama-3.3-70B-Versatile)** to generate
 
 ## 🏗️ System Architecture & Multi-Agent Workflow
 
-The platform utilizes an advanced **LangGraph Multi-Agent Architecture** divided into two highly optimized phases: **Parallel Ingestion** and the **Zero-Delay Adaptive Queue**.
+Our architecture completely discards traditional, blocking LLM patterns. Instead, it leverages a sophisticated, decoupled **LangGraph Multi-Agent Engine** powered by dynamic agent spawning and a continuously replenishing background queue.
 
-### 1. Phase 1: Parallel Document Ingestion (Map-Reduce)
-When a user uploads multiple documents, the system uses LangGraph's `Send` API to spawn dynamic agents.
-*   **Dynamic Agents**: If you provide 1 Resume, 1 JD, and 3 GitHub Repos, the Router spawns **5 independent agents** simultaneously. 
-*   **Latency Improvement**: Network-heavy scraping (GitHub) and CPU-heavy chunking (PDFs) happen in parallel. Processing 5 documents takes the same time as processing 1 document.
+### 1. Phase 1: Dynamic Parallel Ingestion (Map-Reduce)
+During document upload, the system does not process files sequentially. Instead, it utilizes the LangGraph `Send` API to perform dynamic, parallel agent orchestration.
+*   **Dynamic Agent Spawning**: The router intercepts the upload payload and instantly spawns exactly `N` specialized agents. If a user uploads 1 Resume, 1 JD, and 5 GitHub Repositories, the system instantly spawns **7 independent agents** operating on distinct background threads.
+*   **Asymmetric Execution**: Network-bound agents (GitHub scrapers) and CPU-bound agents (PDF extractors) execute completely concurrently. The total ingestion latency is governed solely by the single slowest document, achieving a pure `O(1)` time complexity relative to the number of documents.
+*   **Vector Reduction**: Once all spawned agents complete, a central Reducer node aggregates the multimodal data, generates embeddings via `SentenceTransformers`, and hydrates the ChromaDB vector store.
 
-### 2. Phase 2: Hybrid Adaptive Queue (Zero-Delay)
-We eliminated traditional "round-based" delays by moving all LLM processing to the background.
-*   **Instant UI Popping**: When you submit an answer, the API instantly pops the next pre-generated question from MongoDB. The transition takes **0.0 seconds**, ensuring a fluid, human-like conversation.
-*   **Background Evaluator Agent**: While you are reading the next question, an independent background agent analyzes your previous response, updates your score, and notes strengths/weaknesses.
-*   **Background Generator Agent**: Another agent dynamically generates 1-2 new tailored questions (harder if you did well, simpler if you struggled) and appends them to your active queue, ensuring you never run out.
-*   **Reporting Agent**: Once the interview completes, a final agent scans the entire transcript to generate a comprehensive 15-parameter evaluation JSON.
+### 2. Phase 2: The Continuous Adaptive Queue (Zero-Delay UI)
+Traditional AI interviews suffer from a "stop-and-think" bottleneck where the UI freezes while the LLM generates the next question. We solved this by implementing a **Hybrid, Non-Blocking Adaptive Queue**.
+
+*   **O(1) Instant UI Return**: When a candidate submits an answer, the FastAPI endpoint bypasses the LLM entirely. It performs a simple `pop()` operation on a pre-populated MongoDB question queue and returns the next question instantly. **User-facing latency is exactly 0.0 seconds.**
+*   **Background Orchestration (`adaptive_graph.py`)**: The moment the next question is dispatched to the user, FastAPI detaches the heavy LLM execution to a `BackgroundTask`. While the user is busy reading/answering the new question, an independent LangGraph workflow fires up in the background.
+*   **Simultaneous Background Agents**:
+    1.  **Evaluator Agent**: Retrieves the previous answer, grades it out of 10, identifies specific strengths, weaknesses, and flags hallucinated/AI-generated phrasing.
+    2.  **Strategic Generator Agent**: Receives the evaluation and dynamically shifts the interview strategy. If the candidate scored high, it increases technical complexity. If they scored poorly, it drops to foundational concepts.
+    3.  **Queue Replenisher**: The generator yields 1-2 new, hyper-tailored questions and pushes them into the active MongoDB queue, ensuring the pre-generated stack never runs dry.
 
 ```mermaid
-graph TD
-    subgraph "Phase 1: Multi-Agent Ingestion"
-        StartIngest([Upload Documents]) --> Router[Router]
-        Router -- "Parallel" --> A1[Agent: Parse Resume]
-        Router -- "Parallel" --> A2[Agent: Parse JD]
-        Router -- "Parallel" --> A3[Agent: Scrape GitHubs]
-        A1 & A2 & A3 --> Reducer[Reducer: Embed to ChromaDB]
-    end
+sequenceDiagram
+    participant Candidate
+    participant FastAPIServer
+    participant MongoDB as Active Queue
+    participant LangGraph as Background Agents
 
-    Reducer --> StartInterview([Start Interview])
+    Candidate->>FastAPIServer: Submits Answer 1
+    FastAPIServer->>MongoDB: pop() next question
+    MongoDB-->>FastAPIServer: Question 2
+    FastAPIServer-->>Candidate: Return Question 2 (0.0s Delay)
 
-    subgraph "Phase 2: Background Adaptive Queue"
-        StartInterview --> GenQ[Generator Agent: Build Initial Queue]
-        GenQ --> UI
-        
-        UI((User Answers & Instantly Gets Next Question)) --> EvalAns[Background Evaluator Agent: Grade Answer]
-        EvalAns --> GenQ2[Background Generator Agent: Create Adaptive Questions]
-        GenQ2 -- "Replenishes" --> Queue[(MongoDB: Question Queue)]
-        Queue -. "Pops instantly" .-> UI
-        
-        UI -- "Max questions reached" --> GenReport[Reporting Agent: 15-Parameter Output]
+    note over FastAPIServer,LangGraph: Asynchronous Detached Execution
+    par Candidate Formulates Answer
+        Candidate->>Candidate: Thinking & Speaking...
+    and Background LangGraph Execution
+        FastAPIServer->>LangGraph: Trigger Adaptive Graph
+        LangGraph->>LangGraph: Evaluator Agent: Grade Answer 1
+        LangGraph->>LangGraph: Generator Agent: Create Q3 & Q4
+        LangGraph->>MongoDB: push() Q3 & Q4 to Active Queue
     end
 ```
 
