@@ -92,7 +92,7 @@ export default function Dashboard() {
             <Bot className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-xl font-bold tracking-tight">Solveit AI</h1>
+            <h1 className="text-xl font-bold tracking-tight">AIRA</h1>
             <p className="text-xs text-gray-400">Candidate Dashboard</p>
           </div>
         </div>
@@ -239,7 +239,7 @@ export default function Dashboard() {
               <button className="text-xs text-indigo-400 hover:text-indigo-300 font-medium">View All</button>
             </div>
             
-            <div className="space-y-3">
+            <div className="space-y-3 max-h-[320px] overflow-y-auto pr-2 pb-2" style={{ scrollbarWidth: 'thin', scrollbarColor: '#4f46e5 transparent' }}>
               {loadingHistory ? (
                 <p className="text-sm text-gray-500 text-center py-4">Loading history...</p>
               ) : history.length === 0 ? (

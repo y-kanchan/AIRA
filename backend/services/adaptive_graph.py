@@ -18,7 +18,7 @@ class AdaptiveState(TypedDict):
 async def evaluate_node(state: AdaptiveState):
     print("🤖 [Background] Evaluating answer...")
     ans = state["answer_record"]
-    evaluation = evaluate_answer(ans["question"], ans["answer"], state["context"])
+    evaluation = evaluate_answer(ans["question"], ans["answer"], state["context"], ans.get("code"))
     
     # Update the score in MongoDB immediately
     await interviews_collection.update_one(

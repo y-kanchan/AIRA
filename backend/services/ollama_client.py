@@ -55,7 +55,8 @@ def generate_interview_questions(
         "You are an expert technical interviewer. Generate targeted interview questions "
         "based on the candidate's provided context. "
         "Questions should be specific, probing technical depth and practical experience. "
-        "Return ONLY a JSON array of objects, where each object has 'question' and 'source_tags'."
+        "Questions should be specific, probing technical depth and practical experience. "
+        "Return ONLY a JSON array of objects, where each object has 'question', 'source_tags', and 'is_coding_task' (boolean)."
     )
 
     prompt = f"""Round {round_num} Interview Questions
@@ -71,7 +72,7 @@ IMPORTANT INSTRUCTIONS FOR TAGS:
 You must strictly assign 1-2 source tags for each question from THIS EXACT LIST ONLY: [{sources_str}].
 Do NOT invent new tags. Do NOT use tags for documents that are not in this list.
 
-Return ONLY a valid JSON array like: [{{"question": "Q1?", "source_tags": ["{provided_sources[0]}"]}}]"""
+Return ONLY a valid JSON array like: [{{"question": "Q1?", "source_tags": ["{provided_sources[0]}"], "is_coding_task": false}}]"""
 
     raw = _chat(prompt, system, temperature=0.6)
 
@@ -88,11 +89,11 @@ Return ONLY a valid JSON array like: [{{"question": "Q1?", "source_tags": ["{pro
 
     # Fallback
     return [
-        {"question": "Tell me about your most challenging technical project.", "source_tags": ["General"]},
-        {"question": "How do you approach debugging complex issues?", "source_tags": ["General"]},
-        {"question": "Describe your experience with the technologies in your resume.", "source_tags": ["Resume"]},
-        {"question": "What is your greatest professional achievement?", "source_tags": ["General"]},
-        {"question": "Where do you see yourself growing technically?", "source_tags": ["General"]}
+        {"question": "Tell me about your most challenging technical project.", "source_tags": ["General"], "is_coding_task": False},
+        {"question": "How do you approach debugging complex issues?", "source_tags": ["General"], "is_coding_task": False},
+        {"question": "Write a function to reverse a string in your preferred language.", "source_tags": ["Fundamental"], "is_coding_task": True},
+        {"question": "What is your greatest professional achievement?", "source_tags": ["General"], "is_coding_task": False},
+        {"question": "Where do you see yourself growing technically?", "source_tags": ["General"], "is_coding_task": False}
     ]
 
 
@@ -127,7 +128,7 @@ Candidate Context:
 IMPORTANT INSTRUCTIONS FOR TAGS:
 You must strictly assign 1-2 source tags for each question from THIS EXACT LIST ONLY: [{sources_str}]. One of the tags MUST be 'Adaptive'.
 
-Return ONLY a valid JSON array like: [{{"question": "Q1?", "source_tags": ["Adaptive", "Fundamental"]}}]"""
+Return ONLY a valid JSON array like: [{{"question": "Q1?", "source_tags": ["Adaptive", "Fundamental"], "is_coding_task": false}}]"""
 
     raw = _chat(prompt, system, temperature=0.6)
     try:
@@ -139,10 +140,10 @@ Return ONLY a valid JSON array like: [{{"question": "Q1?", "source_tags": ["Adap
     except Exception:
         pass
         
-    return [{"question": "Could you elaborate more on your previous point?", "source_tags": ["Adaptive"]}]
+    return [{"question": "Could you elaborate more on your previous point?", "source_tags": ["Adaptive"], "is_coding_task": False}]
 
 
-def evaluate_answer(question: str, answer: str, context: str) -> dict:
+def evaluate_answer(question: str, answer: str, context: str, code: str = None) -> dict:
     """Evaluate a candidate's answer and return structured feedback."""
     system = (
         "You are an expert technical interviewer evaluating a candidate's answer. "
@@ -154,7 +155,8 @@ def evaluate_answer(question: str, answer: str, context: str) -> dict:
 
 Question: {question}
 
-Candidate's Answer: {answer}
+Candidate's Spoken Answer: {answer}
+{f"Candidate's Code Submission:\n```\n{code}\n```" if code else ""}
 
 Context about the candidate (resume/JD/GitHub):
 {context[:2000]}
@@ -191,9 +193,10 @@ def generate_interview_report(answers: List[dict], context: str) -> str:
     """Generate a comprehensive interview evaluation report."""
     answers_text = ""
     for i, a in enumerate(answers, 1):
+        code_text = f"\nCode Submitted:\n```\n{a.get('code')}\n```" if a.get('code') else ""
         answers_text += (
             f"\nQ{i} (Round {a.get('round',1)}): {a['question']}\n"
-            f"Answer: {a['answer']}\n"
+            f"Answer: {a['answer']}{code_text}\n"
             f"Score: {a.get('score', 'N/A')}/10\n"
             f"Feedback: {a.get('feedback', '')}\n"
         )

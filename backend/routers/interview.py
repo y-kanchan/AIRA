@@ -115,24 +115,26 @@ def _synthesize_question(text: str, session_id: str, q_idx: int) -> dict:
 async def pre_generate_initial_tts(session_id: str, initial_queue: list):
     """Background task to pre-generate TTS for the initial queue."""
     import asyncio
-    updated_queue = []
     for idx, q_obj in enumerate(initial_queue):
         print(f"🎙️ [Background] Pre-generating TTS for initial queue question {idx+1}...")
         try:
             stem = f"{session_id}_init_q{idx+1}"
             # Run the synchronous blocking TTS generation in a background thread to prevent event loop freezing
             audio_data = await asyncio.to_thread(sarvam_tts.synthesize, q_obj["question"], stem)
-            q_obj["audio_data"] = audio_data
+            
+            # Atomically update only this specific question in the array if it still exists
+            await interviews_collection.update_one(
+                {
+                    "session_id": session_id,
+                    "question_queue.question": q_obj["question"]
+                },
+                {
+                    "$set": {"question_queue.$.audio_data": audio_data}
+                }
+            )
         except Exception as e:
-            print(f"⚠️ [Background] TTS pre-generation failed: {e}")
-            q_obj["audio_data"] = {"audio": None, "lipsync": {"mouthCues": []}, "audio_url": None}
-        updated_queue.append(q_obj)
-        
-    # Overwrite the queue in DB with audio-injected queue
-    await interviews_collection.update_one(
-        {"session_id": session_id},
-        {"$set": {"question_queue": updated_queue}}
-    )
+            print(f"⚠️ [Background] TTS pre-generation failed for Q{idx+1}: {e}")
+            
     print("✅ [Background] Finished pre-generating TTS for initial queue.")
 
 # ── Start Interview ───────────────────────────────────────────────────────────
@@ -187,6 +189,7 @@ async def start_interview(session_id: str, background_tasks: BackgroundTasks, us
     return {
         "question": first_question["question"],
         "source_tags": first_question.get("source_tags", []),
+        "is_coding_task": first_question.get("is_coding_task", False),
         "q_idx": 0,
         "round": 1,
         "total_questions": MAX_INTERVIEW_QUESTIONS,
@@ -200,6 +203,7 @@ async def start_interview(session_id: str, background_tasks: BackgroundTasks, us
 class AnswerRequest(BaseModel):
     session_id: str
     answer: str
+    code: Optional[str] = None
 
 
 @router.post("/answer")
@@ -217,7 +221,9 @@ async def submit_answer(body: AnswerRequest, background_tasks: BackgroundTasks, 
     new_answer = {
         "question": current_question.get("question", ""),
         "source_tags": current_question.get("source_tags", []),
+        "is_coding_task": current_question.get("is_coding_task", False),
         "answer": body.answer,
+        "code": body.code,
         "score": 0,
         "feedback": ""
     }
@@ -262,13 +268,18 @@ async def submit_answer(body: AnswerRequest, background_tasks: BackgroundTasks, 
     print(f"🎙️ Fast returning next question (TTS Pre-generated): {next_question['question']}")
     q_index = total_asked - 1
     
-    # Grab the pre-generated audio dict (fallback if it failed or hasn't finished yet)
-    audio_data = next_question.get("audio_data", {"audio": None, "lipsync": {"mouthCues": []}})
+    # Grab the pre-generated audio dict or synthesize it on the fly if background task hasn't finished
+    audio_data = next_question.get("audio_data")
+    if not audio_data or not audio_data.get("audio"):
+        print(f"⚠️ Pre-generated audio not ready for Q{q_index}, generating synchronously...")
+        audio_data = _synthesize_question(next_question["question"], body.session_id, q_index)
+        
     avatar_data = generate_avatar_response(next_question["question"])
     
     return {
         "question": next_question["question"],
         "source_tags": next_question.get("source_tags", []),
+        "is_coding_task": next_question.get("is_coding_task", False),
         "q_idx": q_index,
         "round": 1,
         "total_questions": MAX_QUESTIONS,

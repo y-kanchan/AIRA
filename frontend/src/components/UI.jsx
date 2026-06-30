@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect } from "react";
 import { useChat } from "../hooks/useChat";
 import { motion, AnimatePresence } from "framer-motion";
+import Editor from "@monaco-editor/react";
 
 /* ─── tiny helpers ─────────────────────────────────────────────────────────── */
 const ScoreBar = ({ score }) => {
@@ -83,6 +84,7 @@ export const UI = ({ hidden, showControls = true, showChat = true }) => {
   /* answer input */
   const answerRef = useRef();
   const [isListening, setIsListening] = useState(false);
+  const [code, setCode] = useState("");
   const recognition = useRef(null);
 
   /* speech recognition */
@@ -111,9 +113,10 @@ export const UI = ({ hidden, showControls = true, showChat = true }) => {
 
   const handleAnswer = () => {
     const text = answerRef.current?.value?.trim();
-    if (!text || loading) return;
+    if (!text && !code.trim() && !loading) return;
     if (answerRef.current) answerRef.current.value = "";
-    submitAnswer(text);
+    submitAnswer(text || "Candidate submitted code via editor.", code.trim() || null);
+    setCode("");
   };
 
   if (hidden) return null;
@@ -268,21 +271,27 @@ export const UI = ({ hidden, showControls = true, showChat = true }) => {
                     )}
                   </div>
 
-                  {/* Answer history */}
-                  <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
-                    {answers.slice().reverse().map((item, i) => (
-                      <div key={i} className="bg-gray-900/60 rounded-xl p-3 border border-gray-800">
-                        <p className="text-gray-400 text-xs mb-1 font-medium flex items-center gap-2">
-                          <span>Q: {item.question}</span>
-                          {(item.source_tags || []).map((tag, idx) => (
-                            <span key={idx} className="bg-indigo-500/10 text-indigo-400 px-1.5 py-0.5 rounded text-[9px] uppercase border border-indigo-500/20">
-                              {tag}
-                            </span>
-                          ))}
-                        </p>
-                        <p className="text-gray-200 text-sm">A: {item.answer}</p>
-                      </div>
-                    ))}
+                  {/* Code Editor Space */}
+                  <div className="flex-1 overflow-hidden px-4 py-3 flex flex-col">
+                    <AnimatePresence>
+                      {currentQuestion?.is_coding_task && (
+                        <motion.div 
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.95 }}
+                          className="flex-1 bg-gray-900 rounded-xl overflow-hidden border border-gray-700/50 shadow-inner"
+                        >
+                          <Editor
+                            height="100%"
+                            defaultLanguage="javascript"
+                            theme="vs-dark"
+                            value={code}
+                            onChange={(value) => setCode(value)}
+                            options={{ minimap: { enabled: false }, fontSize: 14, padding: { top: 16 } }}
+                          />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
 
                   {/* Answer input */}
@@ -346,6 +355,11 @@ export const UI = ({ hidden, showControls = true, showChat = true }) => {
                         <div key={i} className="bg-gray-900/70 rounded-xl p-3 border border-gray-800">
                           <p className="text-gray-300 text-xs font-medium truncate">{a.question}</p>
                           <p className="text-gray-500 text-xs mt-1 line-clamp-2">{a.answer}</p>
+                          {a.code && (
+                            <pre className="mt-2 bg-black/50 p-2 rounded-lg border border-gray-800 text-[10px] text-gray-400 overflow-x-auto custom-scrollbar">
+                              <code>{a.code}</code>
+                            </pre>
+                          )}
                         </div>
                       ))}
                     </div>

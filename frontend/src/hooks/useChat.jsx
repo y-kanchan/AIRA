@@ -111,12 +111,12 @@ export const ChatProvider = ({ children }) => {
   }, [_pushAvatarMessage]);
 
   // ── Phase 3: Submit answer ────────────────────────────────────────────────
-  const submitAnswer = useCallback(async (answer) => {
+  const submitAnswer = useCallback(async (answer, code = null) => {
     if (!sessionId || !currentQuestion) return;
     setLoading(true);
 
     // Record the answered pair
-    setAnswers((prev) => [...prev, { question: currentQuestion.question, answer }]);
+    setAnswers((prev) => [...prev, { question: currentQuestion.question, answer, code }]);
 
     try {
       const token = localStorage.getItem("ai_tutor_token");
@@ -126,7 +126,7 @@ export const ChatProvider = ({ children }) => {
           "Content-Type": "application/json",
           ...(token ? { "Authorization": `Bearer ${token}` } : {})
         },
-        body: JSON.stringify({ session_id: sessionId, answer })
+        body: JSON.stringify({ session_id: sessionId, answer, code })
       });
       if (!resp.ok) throw new Error(`Answer submit failed (${resp.status})`);
       const data = await resp.json();
