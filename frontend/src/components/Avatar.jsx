@@ -44,8 +44,6 @@ const facialExpressions = {
   surprised: {
     eyeWideLeft: 0.5,
     eyeWideRight: 0.5,
-    jawOpen: 0.351,
-    mouthFunnel: 1,
     browInnerUp: 1,
   },
   angry: {
@@ -142,9 +140,9 @@ export function Avatar(props) {
     }
 
     console.log("🎭 Executing animation timeline for chat mode:", message.animationTimeline);
-    
+
     const timeouts = [];
-    
+
     // Execute each animation timeline entry at specified times
     message.animationTimeline.forEach((timelineItem, index) => {
       const timeoutId = setTimeout(() => {
@@ -152,7 +150,7 @@ export function Avatar(props) {
         setAnimation(timelineItem.animation);
         setFacialExpression(timelineItem.expression);
       }, timelineItem.time * 1000); // Convert seconds to milliseconds
-      
+
       timeouts.push(timeoutId);
     });
 
@@ -207,7 +205,7 @@ export function Avatar(props) {
             set({
               [target]: value,
             });
-          } catch (e) {}
+          } catch (e) { }
         }
       }
     });
@@ -249,7 +247,7 @@ export function Avatar(props) {
         currentAudioTime = audio.currentTime;
         shouldApplyLipSync = !audio.paused && !audio.ended;
       }
-      
+
       // Apply lip-sync based on current time
       if (shouldApplyLipSync && currentAudioTime >= 0 && lipsync.mouthCues) {
         for (let i = 0; i < lipsync.mouthCues.length; i++) {
@@ -310,7 +308,7 @@ export function Avatar(props) {
         }
         const value =
           nodes.EyeLeft.morphTargetInfluences[
-            nodes.EyeLeft.morphTargetDictionary[key]
+          nodes.EyeLeft.morphTargetDictionary[key]
           ];
         if (value > 0.01) {
           emotionValues[key] = value;

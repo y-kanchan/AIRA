@@ -142,7 +142,7 @@ export const UI = ({ hidden, showControls = true, showChat = true }) => {
         <div className="flex-1 flex flex-col overflow-hidden">
 
           {/* Phase header */}
-          <div className="bg-gray-950/95 border-b border-gray-800 px-6 pt-4 pb-2 shadow-sm relative z-20">
+          <div className="bg-transparent px-6 pt-4 pb-2 relative z-20">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
@@ -279,7 +279,7 @@ export const UI = ({ hidden, showControls = true, showChat = true }) => {
                           initial={{ opacity: 0, scale: 0.95 }}
                           animate={{ opacity: 1, scale: 1 }}
                           exit={{ opacity: 0, scale: 0.95 }}
-                          className="flex-1 bg-gray-900 rounded-xl overflow-hidden border border-gray-700/50 shadow-inner"
+                          className="w-full h-[45vh] min-h-[300px] max-h-[400px] bg-gray-900 rounded-xl overflow-hidden border border-gray-700/50 shadow-2xl mt-2"
                         >
                           <Editor
                             height="100%"
