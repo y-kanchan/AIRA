@@ -17,6 +17,7 @@
     "framer-motion": "^12.23.16",
     "leva": "^0.9.35",
     "lucide-react": "^1.22.0",
+    "ogl": "^1.0.11",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^7.18.1",
