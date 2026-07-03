@@ -5,6 +5,7 @@ export default {
     extend: {
       fontFamily: {
         sans: ["Inter", "sans-serif"],
+        handwriting: ["Caveat", "cursive"],
       },
     },
   },

@@ -252,8 +252,7 @@ export const UI = ({ hidden, showControls = true, showChat = true }) => {
                       <h2 className="text-2xl font-bold text-white mb-2 tracking-tight">Session Inactive</h2>
                       <p className="text-gray-400 text-sm mb-8 leading-relaxed">You need to configure your interview session from the dashboard before we can begin.</p>
                       
-                      <button onClick={() => window.location.href='/dashboard'} className="group relative inline-flex items-center justify-center w-full px-8 py-3.5 font-bold text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl overflow-hidden transition-all hover:scale-[1.02] shadow-xl shadow-indigo-500/25">
-                        <span className="absolute w-0 h-0 transition-all duration-500 ease-out bg-white rounded-full group-hover:w-56 group-hover:h-56 opacity-10"></span>
+                      <button onClick={() => window.location.href='/dashboard'} className="group relative inline-flex items-center justify-center w-full px-8 py-3.5 font-bold text-gray-950 bg-white rounded-full overflow-hidden transition-all hover:scale-[1.02] shadow-xl shadow-white/10 hover:bg-gray-200">
                         <span className="relative flex items-center gap-2">Return to Dashboard <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg></span>
                       </button>
                     </div>
@@ -442,7 +441,7 @@ export const UI = ({ hidden, showControls = true, showChat = true }) => {
                   <motion.button
                     onClick={resetInterview}
                     whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                    className="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold text-sm hover:from-indigo-500 hover:to-purple-500 transition-all"
+                    className="w-full py-3 rounded-full bg-white text-gray-950 font-bold text-sm hover:bg-gray-200 shadow-lg shadow-white/10 transition-all"
                   >
                     ↺ Start New Interview
                   </motion.button>

@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { FileText, Bot, Briefcase, Activity, Calendar, History, LogOut, Code, Database, Trash2 } from "lucide-react";
 import { useChat } from "../hooks/useChat";
+import Sidebar from "../components/Sidebar";
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { uploadDocuments, interviewPhase, uploadError } = useChat();
 
   const [resumeFile, setResumeFile] = useState(null);
@@ -18,7 +20,14 @@ export default function Dashboard() {
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [timeLimit, setTimeLimit] = useState(30);
   const [savingSettings, setSavingSettings] = useState(false);
+  const [activeTab, setActiveTab] = useState(location.state?.activeTab || "new_interview");
   
+  useEffect(() => {
+    if (location.state?.activeTab) {
+      setActiveTab(location.state.activeTab);
+    }
+  }, [location.state?.activeTab]);
+
   const [materials, setMaterials] = useState([]);
   const [selectedMaterials, setSelectedMaterials] = useState([]); // kept for backward compat / extra github links
   const [uploadingMaterial, setUploadingMaterial] = useState(false);
@@ -247,325 +256,268 @@ export default function Dashboard() {
     navigate("/interview");
   };
 
-  const mockHistory = [
-    { date: "Oct 24, 2025", role: "Senior Frontend Developer", score: 8.5, status: "Excellent" },
-    { date: "Sep 12, 2025", role: "React Engineer", score: 7.2, status: "Good" },
-    { date: "Aug 05, 2025", role: "Fullstack Developer", score: 6.0, status: "Needs Improvement" },
-  ];
-
   return (
-    <div className="min-h-screen bg-gray-950 text-white p-6 pb-20">
-      {/* Header */}
-      <header className="max-w-6xl mx-auto flex items-center justify-between mb-10">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
-            <Bot className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold tracking-tight">AIRA</h1>
-            <p className="text-xs text-gray-400">Candidate Dashboard</p>
-          </div>
-        </div>
-        <button onClick={handleLogout} className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors">
-          <LogOut className="w-4 h-4" /> Sign Out
-        </button>
-      </header>
+    <div className="flex min-h-screen bg-[#070707] text-white font-sans">
+      <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
 
-      <main className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
-        {/* Left Column: Upload & Start Interview */}
-        <div className="lg:col-span-2 space-y-6">
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-            className="bg-gray-900/50 border border-gray-800 rounded-3xl p-8 backdrop-blur-sm"
-          >
-            <h2 className="text-2xl font-bold mb-2">Start New Interview</h2>
-            <p className="text-gray-400 text-sm mb-8">Upload your documents below. The AI will analyze them and generate targeted technical questions.</p>
+      {/* Main Content */}
+      <main className="flex-1 p-10 overflow-y-auto w-full">
+        <div className="max-w-3xl mx-auto">
+          {activeTab === 'new_interview' && (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
+              {/* Header */}
+              <div className="mb-8">
+                <h1 className="text-3xl font-bold mb-3 tracking-tight">Configure Interview</h1>
+                <p className="text-gray-400 text-sm">Provide your details and we will tailor the AI interviewer to test the exact skills required.</p>
+              </div>
 
-            {uploadError && (
-              <div className="bg-red-900/30 border border-red-700/50 rounded-xl p-3 text-red-300 text-sm mb-6">{uploadError}</div>
-            )}
+              {uploadError && (
+                <div className="bg-red-900/30 border border-red-700/50 rounded-xl p-3 text-red-300 text-sm">{uploadError}</div>
+              )}
 
-            <div className="space-y-6">
-              {/* Resume */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-semibold text-indigo-300 uppercase tracking-wider flex items-center gap-2">
-                    <FileText className="w-4 h-4" /> Resume (PDF) *
-                  </label>
-                  <div className="flex gap-1 bg-gray-800 rounded-lg p-1">
-                    <button onClick={() => setResumeMode("upload")} className={`text-xs px-3 py-1.5 rounded-md transition-all font-medium ${resumeMode === "upload" ? "bg-indigo-600 text-white shadow" : "text-gray-400 hover:text-white"}`}>Upload New</button>
-                    <button onClick={() => setResumeMode("library")} className={`text-xs px-3 py-1.5 rounded-md transition-all font-medium ${resumeMode === "library" ? "bg-indigo-600 text-white shadow" : "text-gray-400 hover:text-white"}`}>From Library</button>
+              {/* Form sections */}
+              <div className="space-y-6">
+                {/* 1. UPLOAD RESUME */}
+                <div className="border border-gray-800 rounded-2xl p-6 bg-transparent hover:border-gray-600 hover:bg-[#0c0c0c] transition-all duration-300">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-xs font-bold text-gray-400 tracking-wider flex items-center gap-2 uppercase">
+                      <FileText className="w-4 h-4" /> 1. Upload Resume (Required)
+                    </h3>
                   </div>
-                </div>
 
-                {resumeMode === "upload" ? (
-                  <>
-                    <label className={`flex items-center justify-center gap-3 p-8 rounded-2xl border-2 border-dashed cursor-pointer transition-all
-                      ${resumeFile ? "border-indigo-500 bg-indigo-900/10" : "border-gray-700 hover:border-indigo-600 bg-gray-900/50"}`}>
+                  {resumeMode === "upload" ? (
+                    <label className={`flex flex-col items-center justify-center p-10 rounded-xl border border-dashed ${resumeFile ? "border-indigo-500 bg-indigo-900/10" : "border-gray-800 bg-[#0c0c0c] hover:border-gray-500 hover:bg-[#111]"} cursor-pointer transition-all duration-300 group`}>
                       <input type="file" accept=".pdf" className="hidden" onChange={(e) => setResumeFile(e.target.files?.[0] || null)} />
-                      <div className="text-center">
-                        <FileText className={`w-8 h-8 mx-auto mb-2 ${resumeFile ? "text-indigo-400" : "text-gray-600"}`} />
-                        <span className={`text-sm font-medium ${resumeFile ? "text-indigo-300" : "text-gray-400"}`}>
-                          {resumeFile ? resumeFile.name : "Click to browse or drag PDF here"}
-                        </span>
+                      <div className="w-10 h-10 bg-gray-800/50 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300 group-hover:bg-gray-700/50">
+                        <FileText className={`w-5 h-5 ${resumeFile ? "text-indigo-400" : "text-gray-400 group-hover:text-white"}`} />
                       </div>
+                      <span className={`text-sm font-medium mb-1 ${resumeFile ? "text-indigo-300" : "text-white"}`}>
+                        {resumeFile ? resumeFile.name : "Click to browse or drag PDF here"}
+                      </span>
+                      <span className="text-xs text-gray-500">Maximum file size 5MB</span>
                     </label>
-                  </>
-                ) : (
-                  <select 
-                    value={selectedResumeId} 
-                    onChange={(e) => setSelectedResumeId(e.target.value)}
-                    className="w-full bg-gray-900/50 text-white p-4 rounded-xl border border-gray-700 focus:border-indigo-500 focus:outline-none"
-                  >
-                    <option value="">-- Select a saved Resume --</option>
-                    {materials.filter(m => m.type === 'resume').map(m => (
-                      <option key={m.id} value={m.id}>{m.name}</option>
-                    ))}
-                  </select>
-                )}
-              </div>
-
-              {/* JD */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-semibold text-purple-300 uppercase tracking-wider flex items-center gap-2">
-                    <Briefcase className="w-4 h-4" /> Job Description
-                  </label>
-                  <div className="flex gap-1 bg-gray-800 rounded-lg p-1">
-                    <button onClick={() => setJdMode("file")} className={`text-xs px-3 py-1.5 rounded-md transition-all font-medium ${jdMode === "file" ? "bg-purple-600 text-white shadow" : "text-gray-400 hover:text-white"}`}>PDF</button>
-                    <button onClick={() => setJdMode("text")} className={`text-xs px-3 py-1.5 rounded-md transition-all font-medium ${jdMode === "text" ? "bg-purple-600 text-white shadow" : "text-gray-400 hover:text-white"}`}>Text</button>
-                    <button onClick={() => setJdMode("library")} className={`text-xs px-3 py-1.5 rounded-md transition-all font-medium ${jdMode === "library" ? "bg-purple-600 text-white shadow" : "text-gray-400 hover:text-white"}`}>Library</button>
-                  </div>
-                </div>
-                {jdMode === "file" && (
-                  <label className={`flex items-center gap-3 p-4 rounded-xl border-2 border-dashed cursor-pointer transition-all ${jdFile ? "border-purple-500 bg-purple-900/10" : "border-gray-700 hover:border-purple-600 bg-gray-900/50"}`}>
-                    <input type="file" accept=".pdf" className="hidden" onChange={(e) => setJdFile(e.target.files?.[0] || null)} />
-                    <Briefcase className={`w-5 h-5 flex-shrink-0 ${jdFile ? "text-purple-400" : "text-gray-500"}`} />
-                    <span className={`text-sm truncate ${jdFile ? "text-purple-300" : "text-gray-400"}`}>{jdFile ? jdFile.name : "Upload JD PDF (optional)"}</span>
-                  </label>
-                )}
-                {jdMode === "text" && (
-                  <textarea rows={4} value={jdText} onChange={(e) => setJdText(e.target.value)} placeholder="Paste the job description here…" className="w-full bg-gray-900/50 text-white placeholder:text-gray-500 p-4 rounded-xl border border-gray-700 focus:border-purple-500 focus:outline-none text-sm resize-none" />
-                )}
-                {jdMode === "library" && (
-                  <select 
-                    value={selectedJdId} 
-                    onChange={(e) => setSelectedJdId(e.target.value)}
-                    className="w-full bg-gray-900/50 text-white p-4 rounded-xl border border-gray-700 focus:border-purple-500 focus:outline-none"
-                  >
-                    <option value="">-- Select a saved JD --</option>
-                    {materials.filter(m => m.type === 'jd').map(m => (
-                      <option key={m.id} value={m.id}>{m.name}</option>
-                    ))}
-                  </select>
-                )}
-              </div>
-
-              {/* GitHub Links */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-semibold text-blue-300 uppercase tracking-wider flex items-center gap-2">
-                    <Code className="w-4 h-4" /> GitHub Repos (Optional)
-                  </label>
-                  <div className="flex gap-1 bg-gray-800 rounded-lg p-1">
-                    <button onClick={() => setGithubMode("url")} className={`text-xs px-3 py-1.5 rounded-md transition-all font-medium ${githubMode === "url" ? "bg-blue-600 text-white shadow" : "text-gray-400 hover:text-white"}`}>Enter URL</button>
-                    <button onClick={() => setGithubMode("library")} className={`text-xs px-3 py-1.5 rounded-md transition-all font-medium ${githubMode === "library" ? "bg-blue-600 text-white shadow" : "text-gray-400 hover:text-white"}`}>Library</button>
-                  </div>
+                  ) : (
+                    <select 
+                      value={selectedResumeId} 
+                      onChange={(e) => setSelectedResumeId(e.target.value)}
+                      className="w-full bg-[#0c0c0c] text-white p-4 rounded-xl border border-gray-800 focus:border-gray-600 focus:outline-none"
+                    >
+                      <option value="">-- Select a saved Resume --</option>
+                      {materials.filter(m => m.type === 'resume').map(m => (
+                        <option key={m.id} value={m.id}>{m.name}</option>
+                      ))}
+                    </select>
+                  )}
                 </div>
 
-                {githubMode === "url" ? (
-                  <>
-                    <div className="flex gap-2">
-                      <input
-                        type="url"
-                        value={newGithubUrl}
-                        onChange={(e) => setNewGithubUrl(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addGithubUrl())}
-                        placeholder="https://github.com/username/repo"
-                        className="flex-1 bg-gray-900/50 text-white placeholder:text-gray-500 p-4 rounded-xl border border-gray-700 focus:border-blue-500 focus:outline-none text-sm"
-                      />
+                {/* 2. TARGET JOB DESCRIPTION */}
+                <div className="border border-gray-800 rounded-2xl p-6 bg-transparent hover:border-gray-600 hover:bg-[#0c0c0c] transition-all duration-300">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-xs font-bold text-gray-400 tracking-wider flex items-center gap-2 uppercase">
+                      <Briefcase className="w-4 h-4" /> 2. Target Job Description
+                    </h3>
+                    <div className="flex bg-[#111] border border-gray-800 rounded-lg p-1">
+                      <button onClick={() => setJdMode("file")} className={`text-xs px-3 py-1.5 rounded-md transition-all ${jdMode === "file" ? "bg-gray-700 text-white" : "text-gray-500 hover:text-gray-300"}`}>PDF</button>
+                      <button onClick={() => setJdMode("text")} className={`text-xs px-3 py-1.5 rounded-md transition-all ${jdMode === "text" ? "bg-gray-700 text-white" : "text-gray-500 hover:text-gray-300"}`}>Text</button>
+                    </div>
+                  </div>
+
+                  {jdMode === "file" && (
+                    <label className={`flex items-center gap-4 p-5 rounded-xl border border-dashed ${jdFile ? "border-purple-500 bg-purple-900/10" : "border-gray-800 bg-[#0c0c0c] hover:border-gray-500 hover:bg-[#111]"} cursor-pointer transition-all duration-300 group`}>
+                      <input type="file" accept=".pdf" className="hidden" onChange={(e) => setJdFile(e.target.files?.[0] || null)} />
+                      <div className="w-10 h-10 bg-gray-800/50 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 group-hover:bg-gray-700/50">
+                        <Briefcase className={`w-5 h-5 ${jdFile ? "text-purple-400" : "text-gray-400 group-hover:text-white"}`} />
+                      </div>
+                      <span className={`text-sm font-medium ${jdFile ? "text-purple-300" : "text-gray-400"}`}>{jdFile ? jdFile.name : "Upload JD PDF (optional)"}</span>
+                    </label>
+                  )}
+                  {jdMode === "text" && (
+                    <textarea rows={4} value={jdText} onChange={(e) => setJdText(e.target.value)} placeholder="Paste the job description here…" className="w-full bg-[#0c0c0c] text-white placeholder:text-gray-600 p-5 rounded-xl border border-gray-800 focus:border-gray-600 focus:outline-none text-sm resize-none" />
+                  )}
+                </div>
+
+                {/* 3. GITHUB CONTEXT */}
+                <div className="border border-gray-800 rounded-2xl p-6 bg-transparent hover:border-gray-600 hover:bg-[#0c0c0c] transition-all duration-300">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-xs font-bold text-gray-400 tracking-wider flex items-center gap-2 uppercase">
+                      <Code className="w-4 h-4" /> 3. Github Context
+                    </h3>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <input
+                      type="url"
+                      value={newGithubUrl}
+                      onChange={(e) => setNewGithubUrl(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addGithubUrl())}
+                      placeholder="https://github.com/username/repo"
+                      className="flex-1 bg-[#0c0c0c] text-white placeholder:text-gray-600 p-4 rounded-xl border border-gray-800 focus:border-gray-600 focus:outline-none text-sm"
+                    />
                       <button 
                         type="button" 
                         onClick={addGithubUrl}
-                        className="px-6 bg-gray-800 hover:bg-gray-700 text-white font-medium rounded-xl border border-gray-700 transition-colors"
+                        className="px-6 bg-gray-800 hover:bg-gray-600 text-white font-medium rounded-xl border border-gray-700 hover:border-gray-500 transition-all duration-300"
                       >
                         Add
                       </button>
-                    </div>
-                  </>
-                ) : (
-                  <select 
-                    value={selectedGithubId} 
-                    onChange={(e) => setSelectedGithubId(e.target.value)}
-                    className="w-full bg-gray-900/50 text-white p-4 rounded-xl border border-gray-700 focus:border-blue-500 focus:outline-none"
-                  >
-                    <option value="">-- Select a saved GitHub link --</option>
-                    {materials.filter(m => m.type === 'github').map(m => (
-                      <option key={m.id} value={m.id}>{m.name}</option>
-                    ))}
-                  </select>
-                )}
-                {githubUrls.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-3">
-                    {githubUrls.map((url, i) => (
-                      <span key={i} className="inline-flex items-center gap-2 bg-blue-900/20 text-blue-300 text-xs px-3 py-1.5 rounded-lg border border-blue-800/50">
-                        <span className="truncate max-w-[200px]">{url.replace("https://github.com/", "")}</span>
-                        <button type="button" onClick={() => removeGithubUrl(url)} className="text-blue-400 hover:text-blue-200">
-                          &times;
-                        </button>
-                      </span>
-                    ))}
                   </div>
-                )}
-                
-                {githubUrls.length > 0 && (
+                  
+                  {githubUrls.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-4">
+                      {githubUrls.map((url, i) => (
+                        <span key={i} className="inline-flex items-center gap-2 bg-gray-900 text-gray-300 text-xs px-3 py-1.5 rounded-lg border border-gray-800">
+                          <span className="truncate max-w-[200px]">{url.replace("https://github.com/", "")}</span>
+                          <button type="button" onClick={() => removeGithubUrl(url)} className="text-gray-500 hover:text-white">
+                            &times;
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="pt-6">
                   <button 
-                    onClick={() => uploadToLibrary("github", githubUrls[0].replace("https://github.com/", ""), null, githubUrls.join(","))} 
-                    disabled={uploadingMaterial} 
-                    className="text-xs bg-blue-900/50 text-blue-300 px-3 py-1.5 rounded-lg hover:bg-blue-800 transition-colors w-full text-left"
+                    onClick={handleStart} 
+                    disabled={!(resumeFile && resumeMode === 'upload') && !(selectedResumeId && resumeMode === 'library') && !materials.find(m => selectedMaterials.includes(m.id) && m.type === "resume")}
+                    className={`w-full py-4 rounded-xl font-semibold text-base transition-all duration-500 flex items-center justify-center gap-2
+                      ${((resumeFile && resumeMode === 'upload') || (selectedResumeId && resumeMode === 'library') || materials.find(m => selectedMaterials.includes(m.id) && m.type === "resume"))
+                        ? "bg-white text-black hover:bg-gray-200 hover:scale-[1.01] hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] shadow-[0_0_15px_rgba(255,255,255,0.1)]" 
+                        : "bg-[#111] text-gray-600 border border-gray-800 cursor-not-allowed"}`}
                   >
-                    {uploadingMaterial ? "Uploading..." : "+ Save to Materials Library"}
+                    Start Interview
                   </button>
-                )}
-              </div>
-
-            <div className="mt-8 pt-6 border-t border-gray-800">
-              <button 
-                onClick={handleStart} 
-                disabled={!(resumeFile && resumeMode === 'upload') && !(selectedResumeId && resumeMode === 'library') && !materials.find(m => selectedMaterials.includes(m.id) && m.type === "resume")}
-                className={`w-full py-4 rounded-xl font-bold text-lg tracking-wide transition-all duration-300 flex items-center justify-center gap-2 mt-4
-                  ${((resumeFile && resumeMode === 'upload') || (selectedResumeId && resumeMode === 'library') || materials.find(m => selectedMaterials.includes(m.id) && m.type === "resume"))
-                    ? "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-xl shadow-indigo-500/20 hover:-translate-y-0.5" 
-                    : "bg-gray-800 text-gray-500 cursor-not-allowed"}`}
-              >
-                Start Technical Interview <Activity className="w-5 h-5" />
-              </button>
-            </div>
-            </div>
-          </motion.div>
-        </div>
-
-        {/* Right Column: Profile & Settings & Materials */}
-        <div className="space-y-6">
-          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="bg-gray-900/50 border border-gray-800 rounded-3xl p-6 backdrop-blur-sm">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="w-16 h-16 rounded-full bg-indigo-600 flex items-center justify-center text-xl font-bold text-white border-4 border-gray-800">
-                JD
-              </div>
-              <div>
-                <h3 className="text-lg font-bold">Jane Doe</h3>
-                <p className="text-sm text-gray-400">Software Engineer</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-gray-950 rounded-xl p-3 border border-gray-800">
-                <p className="text-xs text-gray-500 font-semibold mb-1">Interviews</p>
-                <p className="text-2xl font-bold text-indigo-400">{history.length}</p>
-              </div>
-              <div className="bg-gray-950 rounded-xl p-3 border border-gray-800">
-                <p className="text-xs text-gray-500 font-semibold mb-1">Avg Score</p>
-                <p className="text-2xl font-bold text-purple-400">
-                  {history.length > 0 ? (history.reduce((acc, curr) => acc + curr.score, 0) / history.length).toFixed(1) : "0.0"}
-                </p>
-              </div>
-            </div>
-          </motion.div>
-
-            {/* Materials Library Section */}
-            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.05 }} className="bg-gray-900/50 border border-gray-800 rounded-3xl p-6 backdrop-blur-sm">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-bold text-gray-400 flex items-center gap-2">
-                  <Database className="w-4 h-4" /> Materials Library
-                </h3>
-                <button onClick={() => navigate("/materials")} className="text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-1.5 rounded-lg transition-colors">
-                  Manage
-                </button>
-              </div>
-              <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                {materials.map((m) => (
-                  <div key={m.id} className="flex items-center justify-between p-3 bg-gray-950 border border-gray-800 rounded-xl">
-                    <div className="flex items-center gap-3">
-                      <input 
-                        type="checkbox" 
-                        checked={selectedMaterials.includes(m.id)} 
-                        onChange={() => toggleMaterialSelection(m.id)}
-                        className="rounded border-gray-700 bg-gray-900 accent-indigo-500"
-                      />
-                      <div>
-                        <p className="text-sm font-medium">{m.name}</p>
-                        <p className="text-[10px] text-gray-500 uppercase">{m.type}</p>
-                      </div>
-                    </div>
-                    <button onClick={() => deleteMaterial(m.id)} className="text-gray-600 hover:text-red-400">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
+                </div>
               </div>
             </motion.div>
+          )}
 
-          {/* Settings / Time Limit */}
-          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.05 }} className="bg-gray-900/50 border border-gray-800 rounded-3xl p-6 backdrop-blur-sm">
-            <h3 className="font-bold flex items-center gap-2 mb-4">⚙️ Interview Settings</h3>
-            <div className="space-y-4">
+          {activeTab === 'overview' && (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
               <div>
-                <div className="flex justify-between items-center mb-2">
-                  <label className="text-sm text-gray-300 font-medium">Time Limit per Question</label>
-                  <span className="text-indigo-400 font-bold font-mono">{timeLimit}s</span>
+                <h1 className="text-3xl font-bold mb-3 tracking-tight">Overview</h1>
+                <p className="text-gray-400 text-sm">Manage your profile, settings, and materials.</p>
+              </div>
+
+              {/* Profile Card */}
+              <div className="bg-[#0a0a0a] border border-gray-800 rounded-3xl p-6 hover:border-gray-600 hover:shadow-xl hover:shadow-white/5 transition-all duration-500">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-16 h-16 rounded-full bg-gray-800 flex items-center justify-center text-xl font-bold text-white border-4 border-[#111]">
+                    JD
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold">Jane Doe</h3>
+                    <p className="text-sm text-gray-400">Software Engineer</p>
+                  </div>
                 </div>
-                <input 
-                  type="range" 
-                  min="15" 
-                  max="120" 
-                  step="5"
-                  value={timeLimit} 
-                  onChange={(e) => saveTimeLimit(parseInt(e.target.value))}
-                  className="w-full accent-indigo-500"
-                />
-                <div className="flex justify-between text-xs text-gray-500 mt-1">
-                  <span>15s</span>
-                  <span>{savingSettings ? "Saving..." : "Saved"}</span>
-                  <span>120s</span>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-[#111] rounded-xl p-4 border border-gray-800">
+                    <p className="text-xs text-gray-500 font-semibold mb-1">Interviews</p>
+                    <p className="text-2xl font-bold text-white">{history.length}</p>
+                  </div>
+                  <div className="bg-[#111] rounded-xl p-4 border border-gray-800">
+                    <p className="text-xs text-gray-500 font-semibold mb-1">Avg Score</p>
+                    <p className="text-2xl font-bold text-white">
+                      {history.length > 0 ? (history.reduce((acc, curr) => acc + curr.score, 0) / history.length).toFixed(1) : "0.0"}
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
-          </motion.div>
 
-
-          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }} className="bg-gray-900/50 border border-gray-800 rounded-3xl p-6 backdrop-blur-sm">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="font-bold flex items-center gap-2"><History className="w-4 h-4 text-gray-400" /> Recent History</h3>
-              <button className="text-xs text-indigo-400 hover:text-indigo-300 font-medium">View All</button>
-            </div>
-            
-            <div className="space-y-3 max-h-[320px] overflow-y-auto pr-2 pb-2" style={{ scrollbarWidth: 'thin', scrollbarColor: '#4f46e5 transparent' }}>
-              {loadingHistory ? (
-                <p className="text-sm text-gray-500 text-center py-4">Loading history...</p>
-              ) : history.length === 0 ? (
-                <p className="text-sm text-gray-500 text-center py-4">No interviews completed yet.</p>
-              ) : (
-                history.map((item, i) => (
-                  <div key={i} onClick={() => item.session_id && navigate(`/report/${item.session_id}`)} className="bg-gray-950 p-4 rounded-xl border border-gray-800 hover:border-indigo-500/50 hover:shadow-lg hover:shadow-indigo-500/10 transition-all cursor-pointer group">
-                    <div className="flex justify-between items-start mb-2">
-                      <p className="text-sm font-semibold text-white group-hover:text-indigo-300 transition-colors">{item.role}</p>
-                      <span className={`text-xs font-bold px-2 py-1 rounded-md ${
-                        item.score >= 8 ? 'bg-emerald-500/10 text-emerald-400' :
-                        item.score >= 7 ? 'bg-indigo-500/10 text-indigo-400' : 'bg-red-500/10 text-red-400'
-                      }`}>
-                        {item.score}/10
-                      </span>
+              {/* Settings Card */}
+              <div className="bg-[#0a0a0a] border border-gray-800 rounded-3xl p-6 hover:border-gray-600 hover:shadow-xl hover:shadow-white/5 transition-all duration-500">
+                <h3 className="font-bold flex items-center gap-2 mb-4">⚙️ Interview Settings</h3>
+                <div className="space-y-4">
+                  <div>
+                    <div className="flex justify-between items-center mb-2">
+                      <label className="text-sm text-gray-300 font-medium">Time Limit per Question</label>
+                      <span className="text-white font-bold font-mono">{timeLimit}s</span>
                     </div>
-                    <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                      <Calendar className="w-3 h-3" /> {new Date(item.date).toLocaleDateString()}
+                    <input 
+                      type="range" 
+                      min="15" 
+                      max="120" 
+                      step="5"
+                      value={timeLimit} 
+                      onChange={(e) => saveTimeLimit(parseInt(e.target.value))}
+                      className="w-full accent-white"
+                    />
+                    <div className="flex justify-between text-xs text-gray-500 mt-1">
+                      <span>15s</span>
+                      <span>{savingSettings ? "Saving..." : "Saved"}</span>
+                      <span>120s</span>
                     </div>
                   </div>
-                ))
-              )}
-            </div>
-          </motion.div>
-        </div>
+                </div>
+              </div>
 
+              {/* Materials Card */}
+              <div className="bg-[#0a0a0a] border border-gray-800 rounded-3xl p-6 hover:border-gray-600 hover:shadow-xl hover:shadow-white/5 transition-all duration-500">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                    <Database className="w-4 h-4" /> Materials Library
+                  </h3>
+                </div>
+                <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                  {materials.map((m) => (
+                    <div key={m.id} className="flex items-center justify-between p-3 bg-[#111] border border-gray-800 rounded-xl">
+                      <div className="flex items-center gap-3">
+                        <input 
+                          type="checkbox" 
+                          checked={selectedMaterials.includes(m.id)} 
+                          onChange={() => toggleMaterialSelection(m.id)}
+                          className="rounded border-gray-700 bg-gray-900 accent-white"
+                        />
+                        <div>
+                          <p className="text-sm font-medium">{m.name}</p>
+                          <p className="text-[10px] text-gray-500 uppercase">{m.type}</p>
+                        </div>
+                      </div>
+                      <button onClick={() => deleteMaterial(m.id)} className="text-gray-600 hover:text-red-400">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                  {materials.length === 0 && <p className="text-sm text-gray-500 text-center py-4">No materials saved.</p>}
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {activeTab === 'history' && (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
+              <div>
+                <h1 className="text-3xl font-bold mb-3 tracking-tight">History</h1>
+                <p className="text-gray-400 text-sm">Review your past interviews and scores.</p>
+              </div>
+
+              <div className="space-y-3">
+                {loadingHistory ? (
+                  <p className="text-sm text-gray-500 text-center py-4">Loading history...</p>
+                ) : history.length === 0 ? (
+                  <p className="text-sm text-gray-500 text-center py-4">No interviews completed yet.</p>
+                ) : (
+                  history.map((item, i) => (
+                    <div key={i} onClick={() => item.session_id && navigate(`/report/${item.session_id}`)} className="bg-[#0a0a0a] p-5 rounded-2xl border border-gray-800 hover:border-gray-500 hover:-translate-y-1 hover:shadow-xl hover:shadow-white/5 transition-all duration-300 cursor-pointer group">
+                      <div className="flex justify-between items-start mb-2">
+                        <p className="text-sm font-semibold text-white group-hover:text-gray-300 transition-colors">{item.role}</p>
+                        <span className={`text-xs font-bold px-2 py-1 rounded-md ${
+                          item.score >= 8 ? 'bg-emerald-900/30 text-emerald-400' :
+                          item.score >= 7 ? 'bg-blue-900/30 text-blue-400' : 'bg-red-900/30 text-red-400'
+                        }`}>
+                          {item.score}/10
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                        <Calendar className="w-3 h-3" /> {new Date(item.date).toLocaleDateString()}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </motion.div>
+          )}
+        </div>
       </main>
     </div>
   );
