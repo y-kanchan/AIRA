@@ -127,6 +127,12 @@ export function Avatar(props) {
       
       // Use the pre-blessed global audio element if available to bypass strict autoplay policies
       audioEl = window.airaGlobalAudio || new Audio();
+      
+      // CRITICAL: Because this audio element was already play()'d in the dashboard to bypass policies,
+      // changing its src will cause some browsers to immediately autoplay the new source!
+      // We must explicitly pause it so it waits for the timeout to align with the avatar animation.
+      audioEl.pause();
+      audioEl.currentTime = 0;
       audioEl.src = audioUrl;
 
       audioEl.onended = () => {

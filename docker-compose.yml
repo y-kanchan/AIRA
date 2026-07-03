@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  backend:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: aira_backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      # Override localhost for docker networking on Linux (host IP is usually 172.17.0.1 or you can use host.docker.internal if configured)
+      # If using a local MongoDB container instead of Atlas, uncomment mongo service and use: MONGODB_URI=mongodb://mongo:27017
+      - OLLAMA_BASE_URL=http://172.17.0.1:11434 
+    volumes:
+      - ./backend:/app
+      # Keep chroma_db persistent outside the container if needed
+      - ./backend/chroma_db:/app/chroma_db
+    # depends_on:
+    #   - mongo
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: aira_frontend
+    ports:
+      - "5173:5173"
+    environment:
+      # The frontend accesses the backend via the user's browser, so localhost works perfectly!
+      - VITE_API_URL=http://localhost:8000
+    volumes:
+      - ./frontend:/app
+      # Create an anonymous volume to prevent local node_modules from overriding container's
+      - /app/node_modules
+    depends_on:
+      - backend
+
+# Uncomment below if you want to run MongoDB locally via Docker instead of MongoDB Atlas
+#   mongo:
+#     image: mongo:latest
+#     container_name: aira_mongo
+#     ports:
+#       - "27017:27017"
+#     volumes:
+#       - mongo_data:/data/db
+
+# volumes:
+#   mongo_data:

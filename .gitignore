@@ -1,12 +1,22 @@
 venv/
 __pycache__/
 node_modules/
+.env
+
+# Media extensions to ignore globally
 *.mp3
 *.wav
 *.ogg   
 *.mp4
 *.avi
-.env
+
+# Directories to ignore
 uploads/
-backend/audios/
 backend/chroma_db/
+
+# Ignore everything in audios directory
+backend/audios/*
+
+# BUT explicitly DO NOT ignore the introduction audio and JSON files!
+!backend/audios/aira_intro.*
+!backend/audios/intro_*.json

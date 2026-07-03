@@ -1,0 +1,17 @@
+node_modules
+dist
+build
+.env
+__pycache__
+*.pyc
+.git
+.gitignore
+chroma_db
+uploads
+
+# Ignore all generated audios
+backend/audios/*
+
+# BUT explicitly DO NOT ignore the introduction audio and JSON files!
+!backend/audios/aira_intro.*
+!backend/audios/intro_*.json

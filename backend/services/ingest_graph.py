@@ -71,7 +71,7 @@ def distribute_docs(state: IngestState):
     return sends
 
 
-def gather_and_ingest(state: IngestState) -> dict:
+async def gather_and_ingest(state: IngestState) -> dict:
     """
     Reduce node: Gathers all extracted text from the parallel agents,
     chunks them, and embeds them into ChromaDB.
@@ -90,7 +90,7 @@ def gather_and_ingest(state: IngestState) -> dict:
             github_text += doc["extracted_text"] + "\n"
             
     # Ingest combined context into DB sequentially (avoids sqlite locks)
-    context = rag.ingest_documents(
+    context = await rag.ingest_documents(
         session_id=state["session_id"],
         resume_text=resume_text,
         jd_text=jd_text,
