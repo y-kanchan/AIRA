@@ -23,7 +23,7 @@ export default function MaterialsLibrary() {
     const token = localStorage.getItem("ai_tutor_token");
     if (!token) return navigate("/login");
     try {
-      const res = await fetch("http://localhost:8000/user/materials", {
+      const res = await fetch((import.meta.env.VITE_API_URL || "https://aira-u9qv.onrender.com") + "/user/materials", {
         headers: { "Authorization": `Bearer ${token}` }
       });
       if (res.ok) {
@@ -40,7 +40,7 @@ export default function MaterialsLibrary() {
   const handleDelete = async (id) => {
     const token = localStorage.getItem("ai_tutor_token");
     try {
-      const res = await fetch(`http://localhost:8000/user/materials/${id}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || "https://aira-u9qv.onrender.com"}/user/materials/${id}`, {
         method: "DELETE",
         headers: { "Authorization": `Bearer ${token}` }
       });
@@ -67,7 +67,7 @@ export default function MaterialsLibrary() {
     if (content) formData.append("content", content);
 
     try {
-      const res = await fetch("http://localhost:8000/user/materials/upload", {
+      const res = await fetch((import.meta.env.VITE_API_URL || "https://aira-u9qv.onrender.com") + "/user/materials/upload", {
         method: "POST",
         headers: { "Authorization": `Bearer ${token}` },
         body: formData

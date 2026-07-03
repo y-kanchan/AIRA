@@ -61,7 +61,7 @@ export default function Dashboard() {
       }
       
       try {
-        const res = await fetch("http://localhost:8000/user/history", {
+        const res = await fetch((import.meta.env.VITE_API_URL || "https://aira-u9qv.onrender.com") + "/user/history", {
           headers: {
             "Authorization": `Bearer ${token}`
           }
@@ -79,7 +79,7 @@ export default function Dashboard() {
         }
         
         // Fetch Settings
-        const settingsRes = await fetch("http://localhost:8000/user/settings", {
+        const settingsRes = await fetch((import.meta.env.VITE_API_URL || "https://aira-u9qv.onrender.com") + "/user/settings", {
           headers: { "Authorization": `Bearer ${token}` }
         });
         if (settingsRes.ok) {
@@ -89,7 +89,7 @@ export default function Dashboard() {
         }
 
         // Fetch Materials
-        const matsRes = await fetch("http://localhost:8000/user/materials", {
+        const matsRes = await fetch((import.meta.env.VITE_API_URL || "https://aira-u9qv.onrender.com") + "/user/materials", {
           headers: { "Authorization": `Bearer ${token}` }
         });
         if (matsRes.ok) {
@@ -113,7 +113,7 @@ export default function Dashboard() {
     if (!token) return;
     setSavingSettings(true);
     try {
-      await fetch("http://localhost:8000/user/settings", {
+      await fetch((import.meta.env.VITE_API_URL || "https://aira-u9qv.onrender.com") + "/user/settings", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify({ time_limit: newLimit })
@@ -136,7 +136,7 @@ export default function Dashboard() {
       if (file) formData.append("file", file);
       if (content) formData.append("content", content);
       
-      const res = await fetch("http://localhost:8000/user/materials/upload", {
+      const res = await fetch((import.meta.env.VITE_API_URL || "https://aira-u9qv.onrender.com") + "/user/materials/upload", {
         method: "POST",
         headers: { "Authorization": `Bearer ${token}` },
         body: formData
@@ -170,7 +170,7 @@ export default function Dashboard() {
     const token = localStorage.getItem("ai_tutor_token");
     if (!token) return;
     try {
-      const res = await fetch(`http://localhost:8000/user/materials/${id}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || "https://aira-u9qv.onrender.com"}/user/materials/${id}`, {
         method: "DELETE",
         headers: { "Authorization": `Bearer ${token}` }
       });
