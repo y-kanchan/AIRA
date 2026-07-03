@@ -151,12 +151,13 @@ def evaluate_answer(question: str, answer: str, context: str, code: str = None) 
         "Return ONLY a valid JSON object, no other text."
     )
 
+    code_section = f"Candidate's Code Submission:\n```\n{code}\n```" if code else ""
     prompt = f"""Evaluate this interview answer:
 
 Question: {question}
 
 Candidate's Spoken Answer: {answer}
-{f"Candidate's Code Submission:\n```\n{code}\n```" if code else ""}
+{code_section}
 
 Context about the candidate (resume/JD/GitHub):
 {context[:2000]}
