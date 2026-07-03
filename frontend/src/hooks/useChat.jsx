@@ -90,6 +90,14 @@ export const ChatProvider = ({ children }) => {
   const _startInterview = useCallback(async (sid) => {
     setInterviewPhase("starting");
     setLoading(true);
+
+    // Play the introduction video/audio immediately while background tasks run
+    fetch('/intro.json')
+      .then(r => r.json())
+      .then(intro => {
+        _pushAvatarMessage(intro);
+      }).catch(e => console.error("Could not load intro", e));
+
     try {
       const token = localStorage.getItem("ai_tutor_token");
       const resp = await fetch(`${backendUrl}/interview/start/${sid}`, { 

@@ -13,8 +13,6 @@ const facialExpressions = {
     eyeSquintRight: 0.44,
     noseSneerLeft: 0.1700000727403593,
     noseSneerRight: 0.14000002836874015,
-    mouthPressLeft: 0.61,
-    mouthPressRight: 0.41000000000000003,
   },
   funnyFace: {
     jawLeft: 0.63,
@@ -122,11 +120,19 @@ export function Avatar(props) {
     if (message.audio) {
       // Sarvam returns MP3; fallback accepts WAV too
       const mimeType = message.audioFormat === "wav" ? "audio/wav" : "audio/mpeg";
-      const audioEl = new Audio(`data:${mimeType};base64,` + message.audio);
+      const audioUrl = `data:${mimeType};base64,` + message.audio;
+      
+      // Use the pre-blessed global audio element if available to bypass strict autoplay policies
+      const audioEl = window.airaGlobalAudio || new Audio();
+      audioEl.src = audioUrl;
 
       audioEl.onended = () => onMessagePlayed();
       audioEl.onerror = () => { console.error("Audio playback error"); onMessagePlayed(); };
-      audioEl.play().catch((e) => console.error("Audio play failed:", e));
+      audioEl.play().catch((e) => {
+        console.error("Audio play failed (Autoplay blocked):", e);
+        // If the browser strictly blocks it, we MUST call onMessagePlayed or the queue permanently freezes!
+        onMessagePlayed();
+      });
       setAudio(audioEl);
     } else {
       console.warn("No audio for message");
@@ -259,7 +265,7 @@ export function Avatar(props) {
             const viseme = corresponding[mouthCue.value];
             console.log("👄 Applying viseme:", viseme, "at time:", currentAudioTime, "for cue:", mouthCue.value);
             appliedMorphTargets.push(viseme);
-            lerpMorphTarget(viseme, 1, 0.2);
+            lerpMorphTarget(viseme, 1, 0.25);
             break;
           }
         }
@@ -272,7 +278,7 @@ export function Avatar(props) {
       if (appliedMorphTargets.includes(value)) {
         return;
       }
-      lerpMorphTarget(value, 0, 0.1);
+      lerpMorphTarget(value, 0, 0.12);
     });
   });
 

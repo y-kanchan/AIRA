@@ -1,7 +1,9 @@
 from fastapi import APIRouter, Depends
 from typing import List
+from pydantic import BaseModel
+from bson import ObjectId
 
-from db import interviews_collection
+from db import interviews_collection, users_collection
 from services.auth_utils import get_current_user
 
 router = APIRouter(prefix="/user", tags=["user"])
@@ -29,3 +31,19 @@ async def get_user_history(user_id: str = Depends(get_current_user)):
         })
         
     return {"history": formatted_history}
+
+class SettingsUpdate(BaseModel):
+    time_limit: int
+
+@router.get("/settings")
+async def get_settings(user_id: str = Depends(get_current_user)):
+    user = await users_collection.find_one({"_id": ObjectId(user_id)})
+    return {"time_limit": user.get("time_limit", 30) if user else 30}
+
+@router.post("/settings")
+async def update_settings(settings: SettingsUpdate, user_id: str = Depends(get_current_user)):
+    await users_collection.update_one(
+        {"_id": ObjectId(user_id)},
+        {"$set": {"time_limit": settings.time_limit}}
+    )
+    return {"status": "success"}

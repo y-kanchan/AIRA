@@ -17,24 +17,42 @@ const ScoreBar = ({ score }) => {
   );
 };
 
-const Timer = ({ active }) => {
-  const [seconds, setSeconds] = useState(0);
+const Timer = ({ active, limit, onExpire }) => {
+  const [secondsLeft, setSecondsLeft] = useState(limit);
+
+  // Reset the timer when it is not active (e.g., avatar is speaking or loading)
+  useEffect(() => {
+    if (!active) {
+      setSecondsLeft(limit);
+    }
+  }, [active, limit]);
 
   useEffect(() => {
     let interval;
-    if (active) {
-      interval = setInterval(() => setSeconds(s => s + 1), 1000);
+    if (active && secondsLeft > 0) {
+      interval = setInterval(() => {
+        setSecondsLeft(s => {
+          if (s <= 1) {
+            clearInterval(interval);
+            setTimeout(() => onExpire && onExpire(), 0);
+            return 0;
+          }
+          return s - 1;
+        });
+      }, 1000);
     }
     return () => clearInterval(interval);
-  }, [active]);
+  }, [active, secondsLeft, onExpire]);
 
-  const mins = Math.floor(seconds / 60).toString().padStart(2, "0");
-  const secs = (seconds % 60).toString().padStart(2, "0");
+  const mins = Math.floor(secondsLeft / 60).toString().padStart(2, "0");
+  const secs = (secondsLeft % 60).toString().padStart(2, "0");
+  
+  const isWarning = secondsLeft <= 10;
 
   return (
-    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-900/80 border border-gray-800 shadow-inner">
-      <div className={`w-2 h-2 rounded-full ${active ? 'bg-red-500 animate-pulse' : 'bg-gray-600'}`} />
-      <span className={`font-mono text-sm font-medium ${active ? 'text-white' : 'text-gray-500'}`}>
+    <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border shadow-inner transition-colors ${isWarning && active ? 'bg-red-900/40 border-red-800' : 'bg-gray-900/80 border-gray-800'}`}>
+      <div className={`w-2 h-2 rounded-full ${active ? (isWarning ? 'bg-red-500 animate-bounce' : 'bg-green-500 animate-pulse') : 'bg-gray-600'}`} />
+      <span className={`font-mono text-sm font-medium ${active ? (isWarning ? 'text-red-400' : 'text-green-400') : 'text-gray-500'}`}>
         {mins}:{secs}
       </span>
     </div>
@@ -76,8 +94,19 @@ export const UI = ({ hidden, showControls = true, showChat = true }) => {
   const {
     loading, cameraZoomed, setCameraZoomed,
     interviewPhase, currentQuestion, answers, report, uploadError,
-    uploadDocuments, submitAnswer, resetInterview,
+    uploadDocuments, submitAnswer, resetInterview, message,
   } = useChat();
+
+  const timeLimit = parseInt(localStorage.getItem("aira_time_limit") || "30");
+  const isTimerActive = interviewPhase === "interviewing" && !message && !loading;
+  
+  const [timeExpired, setTimeExpired] = useState(false);
+
+  useEffect(() => {
+    if (!isTimerActive) {
+      setTimeExpired(false);
+    }
+  }, [isTimerActive]);
 
   /* upload state moved to Dashboard */
 
@@ -113,10 +142,31 @@ export const UI = ({ hidden, showControls = true, showChat = true }) => {
 
   const handleAnswer = () => {
     const text = answerRef.current?.value?.trim();
-    if (!text && !code.trim() && !loading) return;
+    const codeText = code.trim();
+    if (!text && !codeText && !loading && !timeExpired) return;
+
     if (answerRef.current) answerRef.current.value = "";
-    submitAnswer(text || "Candidate submitted code via editor.", code.trim() || null);
+    
+    let submitText = text;
+    if (timeExpired && !text && !codeText) {
+      submitText = "Candidate ran out of time and did not provide an answer.";
+    } else if (!text && codeText) {
+      submitText = "Candidate submitted code via editor.";
+    } else if (!text) {
+      submitText = "Candidate submitted an empty answer.";
+    }
+
+    submitAnswer(submitText, codeText || null);
     setCode("");
+    setTimeExpired(false);
+  };
+
+  const handleTimeExpire = () => {
+    setTimeExpired(true);
+    if (isListening && recognition.current) {
+      recognition.current.stop();
+      setIsListening(false);
+    }
   };
 
   if (hidden) return null;
@@ -154,7 +204,11 @@ export const UI = ({ hidden, showControls = true, showChat = true }) => {
               </div>
               
               <div className="flex items-center gap-4">
-                <Timer active={interviewPhase === "interviewing" || interviewPhase === "starting"} />
+                <Timer 
+                  active={isTimerActive} 
+                  limit={timeLimit} 
+                  onExpire={handleTimeExpire} 
+                />
                 {interviewPhase !== "upload" && (
                   <button onClick={resetInterview} className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-gray-900 border border-gray-700 text-xs font-semibold text-gray-400 hover:text-red-400 hover:border-red-900/50 hover:bg-red-900/20 transition-all">
                     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
@@ -287,7 +341,12 @@ export const UI = ({ hidden, showControls = true, showChat = true }) => {
                             theme="vs-dark"
                             value={code}
                             onChange={(value) => setCode(value)}
-                            options={{ minimap: { enabled: false }, fontSize: 14, padding: { top: 16 } }}
+                            options={{ 
+                              minimap: { enabled: false }, 
+                              fontSize: 14, 
+                              padding: { top: 16 },
+                              readOnly: loading || timeExpired 
+                            }}
                           />
                         </motion.div>
                       )}
@@ -300,9 +359,9 @@ export const UI = ({ hidden, showControls = true, showChat = true }) => {
                       <textarea
                         ref={answerRef}
                         rows={3}
-                        disabled={loading}
-                        placeholder="Type your answer here… or use the mic"
-                        className="flex-1 bg-gray-900/70 text-white placeholder:text-gray-500 p-3 rounded-xl border border-gray-700/50 focus:border-indigo-500 focus:outline-none text-sm resize-none transition-all"
+                        disabled={loading || timeExpired}
+                        placeholder={timeExpired ? "Time's up! Please click submit to proceed." : "Type your answer here… or use the mic"}
+                        className="flex-1 bg-gray-900/70 text-white placeholder:text-gray-500 p-3 rounded-xl border border-gray-700/50 focus:border-indigo-500 focus:outline-none text-sm resize-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                         onKeyDown={(e) => {
                           if (e.key === "Enter" && e.ctrlKey) handleAnswer();
                         }}
@@ -310,9 +369,10 @@ export const UI = ({ hidden, showControls = true, showChat = true }) => {
                       <div className="flex flex-col gap-2">
                         <button
                           onClick={toggleMic}
-                          disabled={loading}
+                          disabled={loading || timeExpired}
                           className={`p-3 rounded-xl transition-all duration-300 border
-                            ${isListening ? "bg-red-600/30 border-red-500 text-red-300 animate-pulse" : "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700"}`}
+                            ${isListening ? "bg-red-600/30 border-red-500 text-red-300 animate-pulse" : "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700"}
+                            disabled:opacity-50 disabled:cursor-not-allowed`}
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />

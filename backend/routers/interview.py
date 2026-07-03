@@ -137,6 +137,20 @@ async def pre_generate_initial_tts(session_id: str, initial_queue: list):
             
     print("✅ [Background] Finished pre-generating TTS for initial queue.")
 
+def cleanup_session_audios(session_id: str):
+    """Delete all generated audio files for the given session to save space."""
+    try:
+        from services.sarvam_tts import AUDIOS_DIR
+        print(f"🧹 Cleaning up audio files for session {session_id}...")
+        for file in AUDIOS_DIR.glob(f"{session_id}*.*"):
+            try:
+                file.unlink()
+            except FileNotFoundError:
+                pass
+        print(f"✅ Audio cleanup complete for {session_id}.")
+    except Exception as e:
+        print(f"⚠️ Failed to cleanup audios: {e}")
+
 # ── Start Interview ───────────────────────────────────────────────────────────
 
 @router.post("/start/{session_id}")
@@ -245,6 +259,9 @@ async def submit_answer(body: AnswerRequest, background_tasks: BackgroundTasks, 
         print("✅ Interview complete. Triggering background final report generation...")
         from services.adaptive_graph import run_background_evaluation
         background_tasks.add_task(run_background_evaluation, body.session_id, new_answer, True)
+        
+        # Cleanup audio files for this session
+        background_tasks.add_task(cleanup_session_audios, body.session_id)
         
         return {"complete": True}
 

@@ -16,6 +16,8 @@ export default function Dashboard() {
   const [newGithubUrl, setNewGithubUrl] = useState("");
   const [history, setHistory] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
+  const [timeLimit, setTimeLimit] = useState(30);
+  const [savingSettings, setSavingSettings] = useState(false);
 
   const addGithubUrl = () => {
     if (newGithubUrl.trim() && !githubUrls.includes(newGithubUrl.trim())) {
@@ -54,8 +56,18 @@ export default function Dashboard() {
           const data = await res.json();
           setHistory(data.history);
         }
+        
+        // Fetch Settings
+        const settingsRes = await fetch("http://localhost:8000/user/settings", {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        if (settingsRes.ok) {
+          const sData = await settingsRes.json();
+          setTimeLimit(sData.time_limit || 30);
+          localStorage.setItem("aira_time_limit", sData.time_limit || 30);
+        }
       } catch (err) {
-        console.error("Failed to fetch history:", err);
+        console.error("Failed to fetch data:", err);
       } finally {
         setLoadingHistory(false);
       }
@@ -64,6 +76,25 @@ export default function Dashboard() {
     fetchHistory();
   }, [navigate]);
 
+  const saveTimeLimit = async (newLimit) => {
+    setTimeLimit(newLimit);
+    localStorage.setItem("aira_time_limit", newLimit);
+    const token = localStorage.getItem("ai_tutor_token");
+    if (!token) return;
+    setSavingSettings(true);
+    try {
+      await fetch("http://localhost:8000/user/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+        body: JSON.stringify({ time_limit: newLimit })
+      });
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSavingSettings(false);
+    }
+  };
+
   const handleLogout = () => {
     localStorage.removeItem("ai_tutor_token");
     navigate("/");
@@ -71,6 +102,14 @@ export default function Dashboard() {
 
   const handleStart = async () => {
     if (!resumeFile) return;
+    
+    // Bless a global audio element during this user interaction (click event)
+    // This bypasses strict browser autoplay policies for timer-based auto-submits later!
+    if (!window.airaGlobalAudio) {
+      window.airaGlobalAudio = new Audio();
+      window.airaGlobalAudio.play().catch(() => {});
+    }
+
     // Trigger upload in global state
     uploadDocuments({ resumeFile, jdFile, jdText: jdMode === "text" ? jdText : "", githubUrl: githubUrls.join(",") });
     // Immediately redirect to the interview room to see the loading state
@@ -232,6 +271,34 @@ export default function Dashboard() {
               </div>
             </div>
           </motion.div>
+
+          {/* Settings / Time Limit */}
+          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.05 }} className="bg-gray-900/50 border border-gray-800 rounded-3xl p-6 backdrop-blur-sm">
+            <h3 className="font-bold flex items-center gap-2 mb-4">⚙️ Interview Settings</h3>
+            <div className="space-y-4">
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <label className="text-sm text-gray-300 font-medium">Time Limit per Question</label>
+                  <span className="text-indigo-400 font-bold font-mono">{timeLimit}s</span>
+                </div>
+                <input 
+                  type="range" 
+                  min="15" 
+                  max="120" 
+                  step="5"
+                  value={timeLimit} 
+                  onChange={(e) => saveTimeLimit(parseInt(e.target.value))}
+                  className="w-full accent-indigo-500"
+                />
+                <div className="flex justify-between text-xs text-gray-500 mt-1">
+                  <span>15s</span>
+                  <span>{savingSettings ? "Saving..." : "Saved"}</span>
+                  <span>120s</span>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+
 
           <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }} className="bg-gray-900/50 border border-gray-800 rounded-3xl p-6 backdrop-blur-sm">
             <div className="flex items-center justify-between mb-6">

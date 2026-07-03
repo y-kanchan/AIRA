@@ -6,8 +6,9 @@ import subprocess
 import tempfile
 import httpx
 from pathlib import Path
+from gtts import gTTS
+import io
 
-SARVAM_API_KEY = os.getenv("SARVAM_API_KEY", "")
 SARVAM_TTS_URL = "https://api.sarvam.ai/text-to-speech"
 
 # Rhubarb binary path (relative to this file → ../backend/bin/rhubarb)
@@ -18,8 +19,9 @@ AUDIOS_DIR = _HERE.parent / "audios"
 
 def _sarvam_tts(text: str) -> bytes:
     """Call Sarvam API and return raw WAV bytes."""
+    api_key = os.getenv("SARVAM_API_KEY", "")
     headers = {
-        "api-subscription-key": SARVAM_API_KEY,
+        "api-subscription-key": api_key,
         "Content-Type": "application/json"
     }
     payload = {
@@ -30,12 +32,33 @@ def _sarvam_tts(text: str) -> bytes:
         "pace": 1.0,
         "enable_preprocessing": True
     }
-    resp = httpx.post(SARVAM_TTS_URL, json=payload, headers=headers, timeout=120.0)
-    resp.raise_for_status()
-    data = resp.json()
-    # Response: {"audios": ["<base64_wav>"]}
-    audio_b64 = data["audios"][0]
-    return base64.b64decode(audio_b64)
+    try:
+        resp = httpx.post(SARVAM_TTS_URL, json=payload, headers=headers, timeout=120.0)
+        resp.raise_for_status()
+        data = resp.json()
+        audio_b64 = data["audios"][0]
+        return base64.b64decode(audio_b64)
+    except Exception as e:
+        print(f"⚠️ Sarvam API failed ({e}). Falling back to gTTS...")
+        # Fallback to gTTS
+        tts = gTTS(text, lang='en', tld='co.in')
+        # We need WAV format. gTTS outputs MP3.
+        # Save to temp file and convert to wav bytes
+        with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmp_mp3:
+            tts.save(tmp_mp3.name)
+        
+        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp_wav:
+            pass # just to get a unique filename
+            
+        subprocess.run(["ffmpeg", "-y", "-i", tmp_mp3.name, "-ar", "16000", tmp_wav.name], capture_output=True)
+        
+        with open(tmp_wav.name, "rb") as f:
+            wav_bytes = f.read()
+            
+        os.unlink(tmp_mp3.name)
+        os.unlink(tmp_wav.name)
+        
+        return wav_bytes
 
 
 def _run_rhubarb(wav_path: Path, json_path: Path) -> None:
