@@ -1,4 +1,4 @@
-# 🌟 AI Interview Platform (RAG + 3D Avatar + Groq)
+# AIRA - AI Interview Recruitment Assistant 
 
 ![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi)
 ![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
