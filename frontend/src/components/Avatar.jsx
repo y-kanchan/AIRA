@@ -113,9 +113,12 @@ export function Avatar(props) {
       return;
     }
 
-    setAnimation(message.animation);
-    setFacialExpression(message.facialExpression);
-    setLipsync(message.lipsync);
+    const delayMs = message.isIntro ? 2000 : 4000;
+    let audioTimeoutId;
+    let audioEl;
+
+    // Default to Idle while waiting to speak
+    setAnimation("Idle");
 
     if (message.audio) {
       // Sarvam returns MP3; fallback accepts WAV too
@@ -123,20 +126,44 @@ export function Avatar(props) {
       const audioUrl = `data:${mimeType};base64,` + message.audio;
       
       // Use the pre-blessed global audio element if available to bypass strict autoplay policies
-      const audioEl = window.airaGlobalAudio || new Audio();
+      audioEl = window.airaGlobalAudio || new Audio();
       audioEl.src = audioUrl;
 
-      audioEl.onended = () => onMessagePlayed();
-      audioEl.onerror = () => { console.error("Audio playback error"); onMessagePlayed(); };
-      audioEl.play().catch((e) => {
-        console.error("Audio play failed (Autoplay blocked):", e);
-        // If the browser strictly blocks it, we MUST call onMessagePlayed or the queue permanently freezes!
+      audioEl.onended = () => {
+        setAnimation("Idle");
         onMessagePlayed();
-      });
-      setAudio(audioEl);
+      };
+      
+      audioEl.onerror = () => { 
+        console.error("Audio playback error"); 
+        onMessagePlayed(); 
+      };
+
+      audioTimeoutId = setTimeout(() => {
+        setAnimation(message.animation || "Talking_0");
+        setFacialExpression(message.facialExpression || "smile");
+        setLipsync(message.lipsync);
+
+        audioEl.play().catch((e) => {
+          console.error("Audio play failed (Autoplay blocked):", e);
+          // If the browser strictly blocks it, we MUST call onMessagePlayed or the queue permanently freezes!
+          onMessagePlayed();
+        });
+        setAudio(audioEl);
+      }, delayMs);
+      
     } else {
       console.warn("No audio for message");
     }
+    
+    return () => {
+      if (audioTimeoutId) clearTimeout(audioTimeoutId);
+      if (audioEl) {
+        audioEl.pause();
+        audioEl.onended = null;
+        audioEl.onerror = null;
+      }
+    };
   }, [message]);
 
   // Animation Timeline Execution
@@ -145,17 +172,15 @@ export function Avatar(props) {
       return;
     }
 
-    console.log("🎭 Executing animation timeline for chat mode:", message.animationTimeline);
-
+    const delayMs = message.isIntro ? 2000 : 4000;
     const timeouts = [];
 
     // Execute each animation timeline entry at specified times
     message.animationTimeline.forEach((timelineItem, index) => {
       const timeoutId = setTimeout(() => {
-        console.log(`🎭 Timeline ${index}: ${timelineItem.action} at ${timelineItem.time}s - ${timelineItem.animation} / ${timelineItem.expression}`);
         setAnimation(timelineItem.animation);
         setFacialExpression(timelineItem.expression);
-      }, timelineItem.time * 1000); // Convert seconds to milliseconds
+      }, timelineItem.time * 1000 + delayMs); // Offset by our initial delay
 
       timeouts.push(timeoutId);
     });

@@ -49,21 +49,23 @@ export const ChatProvider = ({ children }) => {
         { time: 0,   action: "greeting",    animation: "Talking_0", expression: "smile" },
         { time: 2,   action: "explanation", animation: "Talking_1", expression: "default" },
         { time: 5,   action: "closing",     animation: "Talking_0", expression: "smile" }
-      ]
+      ],
+      isIntro: data.isIntro || false
     };
     setMessages((prev) => [...prev, msg]);
   }, []);
 
   // ── Phase 1: Upload documents ─────────────────────────────────────────────
-  const uploadDocuments = useCallback(async ({ resumeFile, jdFile, jdText, githubUrl }) => {
+  const uploadDocuments = useCallback(async ({ resumeFile, jdFile, jdText, githubUrl, material_ids }) => {
     setUploadError(null);
     setInterviewPhase("uploading");
 
     const form = new FormData();
-    form.append("resume", resumeFile);
+    if (resumeFile) form.append("resume", resumeFile);
     if (jdFile)    form.append("jd",        jdFile);
     if (jdText)    form.append("jd_text",   jdText);
     if (githubUrl) form.append("github_url", githubUrl);
+    if (material_ids) form.append("material_ids", material_ids);
 
     try {
       const token = localStorage.getItem("ai_tutor_token");
@@ -95,6 +97,7 @@ export const ChatProvider = ({ children }) => {
     fetch('/intro.json')
       .then(r => r.json())
       .then(intro => {
+        intro.isIntro = true;
         _pushAvatarMessage(intro);
       }).catch(e => console.error("Could not load intro", e));
 

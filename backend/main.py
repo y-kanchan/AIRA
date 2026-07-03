@@ -45,6 +45,15 @@ async def startup_event():
     print("\n" + "="*60)
     print("🚀 AI INTERVIEW SERVER IS FULLY CONNECTED AND READY!")
     print("👉 Go to http://localhost:5174 in your browser to start.")
+    
+    print("🧹 Cleaning up lingering audio files from previous aborted sessions...")
+    for file in AUDIOS_DIR.glob("*.*"):
+        if "intro" not in file.name.lower():
+            try:
+                file.unlink()
+            except Exception as e:
+                print(f"⚠️ Failed to delete {file.name}: {e}")
+                
     print("="*60 + "\n")
 
 @app.get("/ping")

@@ -14,7 +14,8 @@ from datetime import datetime
 from services import rag, sarvam_tts
 from services.ollama_client import generate_avatar_response, generate_interview_questions
 from services.auth_utils import get_current_user
-from db import interviews_collection
+from db import interviews_collection, users_collection
+from bson import ObjectId
 
 router = APIRouter(prefix="/interview", tags=["interview"])
 
@@ -28,27 +29,42 @@ MAX_INTERVIEW_QUESTIONS = int(os.getenv("MAX_INTERVIEW_QUESTIONS", 5))
 
 @router.post("/upload-documents")
 async def upload_documents(
-    resume: UploadFile = File(...),
+    resume: Optional[UploadFile] = File(None),
     jd: Optional[UploadFile] = File(None),
     jd_text: Optional[str] = Form(None),
     github_url: Optional[str] = Form(None),
+    material_ids: Optional[str] = Form(None),
     user_id: str = Depends(get_current_user),
 ):
     """
-    Accept resume PDF, JD (PDF or text), and GitHub URL.
+    Accept resume PDF, JD (PDF or text), and GitHub URL, or existing material_ids.
     Extract text, ingest into ChromaDB, return session_id.
     """
     session_id = str(uuid.uuid4()).replace("-", "")[:16]
 
     try:
-        # Collect all documents for parallel processing
         documents_to_process = []
 
+        # 0. Existing Materials
+        if material_ids:
+            user = await users_collection.find_one({"_id": ObjectId(user_id)})
+            if user and "materials" in user:
+                mat_ids = [m.strip() for m in material_ids.split(",") if m.strip()]
+                for mat in user["materials"]:
+                    if mat["id"] in mat_ids:
+                        dt = mat["type"]
+                        # Map type to our text inputs
+                        if dt == "resume": documents_to_process.append({"doc_type": "resume_text", "content": mat["content"]})
+                        elif dt == "jd": documents_to_process.append({"doc_type": "jd_text", "content": mat["content"]})
+                        elif dt == "github": documents_to_process.append({"doc_type": "github_text", "content": mat["content"]})
+                        print(f"📥 Queued Existing Material: {mat['name']}")
+
         # 1. Resume
-        resume_path = UPLOADS_DIR / f"{session_id}_resume.pdf"
-        resume_path.write_bytes(await resume.read())
-        documents_to_process.append({"doc_type": "resume", "content": str(resume_path)})
-        print(f"📥 Queued Resume: {resume_path.name}")
+        if resume and resume.filename:
+            resume_path = UPLOADS_DIR / f"{session_id}_resume.pdf"
+            resume_path.write_bytes(await resume.read())
+            documents_to_process.append({"doc_type": "resume", "content": str(resume_path)})
+            print(f"📥 Queued Resume: {resume_path.name}")
 
         # 2. JD
         if jd and jd.filename:
@@ -66,6 +82,9 @@ async def upload_documents(
             for url in urls:
                 documents_to_process.append({"doc_type": "github", "content": url})
                 print(f"📥 Queued GitHub: {url}")
+
+        if not documents_to_process:
+            raise HTTPException(400, "No documents provided.")
 
         print("🚀 Dispatching documents to parallel multi-agent graph...")
         from services.ingest_graph import ingest_graph
@@ -211,6 +230,24 @@ async def start_interview(session_id: str, background_tasks: BackgroundTasks, us
         **avatar_data
     }
 
+
+# ── Upload Video ─────────────────────────────────────────────────────────────
+
+@router.post("/upload-video")
+async def upload_video(
+    session_id: str = Form(...),
+    q_idx: int = Form(...),
+    video: UploadFile = File(...)
+):
+    """Save the recorded webcam video for a specific question."""
+    try:
+        video_path = UPLOADS_DIR / f"{session_id}_q{q_idx}_video.webm"
+        video_path.write_bytes(await video.read())
+        print(f"📹 Saved video recording to {video_path.name}")
+        return {"status": "success", "file": video_path.name}
+    except Exception as e:
+        print(f"⚠️ Failed to save video: {e}")
+        raise HTTPException(500, "Failed to save video")
 
 # ── Submit Answer ─────────────────────────────────────────────────────────────
 

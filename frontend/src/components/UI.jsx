@@ -89,12 +89,81 @@ const PhaseIndicator = ({ phase, round, maxRounds, qIdx, total }) => {
   );
 };
 
+const Webcam = ({ active, sessionId, qIdx }) => {
+  const videoRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const chunksRef = useRef([]);
+
+  useEffect(() => {
+    let stream = null;
+    if (active) {
+      navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+        .then(s => {
+          stream = s;
+          if (videoRef.current) {
+            videoRef.current.srcObject = s;
+          }
+          
+          // Setup MediaRecorder
+          const mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+          mediaRecorderRef.current = mediaRecorder;
+          chunksRef.current = [];
+
+          mediaRecorder.ondataavailable = (e) => {
+            if (e.data.size > 0) {
+              chunksRef.current.push(e.data);
+            }
+          };
+
+          mediaRecorder.onstop = () => {
+            if (chunksRef.current.length > 0 && sessionId) {
+              const blob = new Blob(chunksRef.current, { type: 'video/webm' });
+              
+              const formData = new FormData();
+              formData.append("video", blob, `q${qIdx}.webm`);
+              formData.append("session_id", sessionId);
+              formData.append("q_idx", qIdx);
+              
+              const token = localStorage.getItem("ai_tutor_token");
+              const headers = token ? { "Authorization": `Bearer ${token}` } : {};
+              
+              fetch(`http://localhost:8000/interview/upload-video`, {
+                method: "POST",
+                headers,
+                body: formData
+              }).catch(e => console.error("Failed to upload video:", e));
+            }
+            chunksRef.current = [];
+          };
+
+          mediaRecorder.start(1000);
+        })
+        .catch(err => console.error("Camera error:", err));
+    }
+    
+    return () => {
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+        mediaRecorderRef.current.stop();
+      }
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [active, sessionId, qIdx]);
+
+  return (
+    <div className="hidden">
+      <video ref={videoRef} autoPlay playsInline muted />
+    </div>
+  );
+};
+
 /* ─── Main UI ──────────────────────────────────────────────────────────────── */
 export const UI = ({ hidden, showControls = true, showChat = true }) => {
   const {
     loading, cameraZoomed, setCameraZoomed,
     interviewPhase, currentQuestion, answers, report, uploadError,
-    uploadDocuments, submitAnswer, resetInterview, message,
+    uploadDocuments, submitAnswer, resetInterview, message, sessionId,
   } = useChat();
 
   const timeLimit = parseInt(localStorage.getItem("aira_time_limit") || "30");
@@ -185,6 +254,15 @@ export const UI = ({ hidden, showControls = true, showChat = true }) => {
             : <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607zM10.5 7.5v6m3-3h-6" /></svg>
           }
         </button>
+      )}
+      
+      {/* ── Webcam ── */}
+      {showChat && (
+        <Webcam 
+          active={isTimerActive && !timeExpired} 
+          sessionId={sessionId}
+          qIdx={currentQuestion?.q_idx ?? 0}
+        />
       )}
 
       {/* ── Main content ── */}

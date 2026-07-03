@@ -38,12 +38,18 @@ def process_document(state: ProcessDocInput) -> dict:
 
     if doc_type == "resume":
         text = rag.extract_pdf_text(content)
+    elif doc_type == "resume_text":
+        text = content
+        doc_type = "resume" # standardize for reduce step
     elif doc_type == "jd_file":
         text = rag.extract_pdf_text(content)
     elif doc_type == "jd_text":
         text = content
     elif doc_type == "github":
         text = rag.fetch_github_content(content)
+    elif doc_type == "github_text":
+        text = content
+        doc_type = "github" # standardize for reduce step
         
     print(f"✅ [Agent] Completed {doc_type} processing. ({len(text)} chars)")
     return {"processed_docs": [{"doc_type": doc_type, "extracted_text": text}]}
