@@ -236,7 +236,7 @@ export const UI = ({ hidden, showControls = true, showChat = true }) => {
           <div className="bg-transparent px-6 pt-4 pb-2 relative z-20">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-3">
-                <img src={airaLogo} alt="AIRA" className="h-6 object-contain" />
+                <img src={airaLogo} alt="AIRA" className="h-20 w-56 object-contain object-left" />
               </div>
               
               <div className="flex items-center gap-4">
