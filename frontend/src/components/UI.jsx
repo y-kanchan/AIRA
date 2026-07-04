@@ -2,7 +2,7 @@ import { useRef, useState, useEffect } from "react";
 import { useChat } from "../hooks/useChat";
 import { motion, AnimatePresence } from "framer-motion";
 import Editor from "@monaco-editor/react";
-import airaLogo2 from "../styles/aira2.png";
+import airaLogo from "../styles/aira.png";
 
 /* ─── tiny helpers ─────────────────────────────────────────────────────────── */
 const ScoreBar = ({ score }) => {
@@ -236,7 +236,7 @@ export const UI = ({ hidden, showControls = true, showChat = true }) => {
           <div className="bg-transparent px-6 pt-4 pb-2 relative z-20">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-3">
-                <img src={airaLogo2} alt="AIRA" className="h-6 object-contain" />
+                <img src={airaLogo} alt="AIRA" className="h-6 object-contain" />
               </div>
               
               <div className="flex items-center gap-4">
@@ -272,12 +272,12 @@ export const UI = ({ hidden, showControls = true, showChat = true }) => {
                   initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
                   className="flex-1 flex flex-col items-center justify-center gap-6 p-8 relative overflow-hidden"
                 >
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-teal-500/10 rounded-full blur-[80px] pointer-events-none" />
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[#1A363E]/20 rounded-full blur-[80px] pointer-events-none" />
                   
                   {interviewPhase === "upload" ? (
                     <div className="text-center relative z-10 max-w-sm">
-                      <div className="w-20 h-20 mx-auto mb-6 bg-gray-900/80 backdrop-blur-sm border border-gray-700 rounded-3xl flex items-center justify-center shadow-2xl shadow-teal-500/20 rotate-3 hover:rotate-0 transition-transform">
-                        <svg className="w-10 h-10 text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <div className="w-20 h-20 mx-auto mb-6 bg-gray-900/80 backdrop-blur-sm border border-[#1A363E] rounded-3xl flex items-center justify-center shadow-2xl shadow-[#1A363E]/30 rotate-3 hover:rotate-0 transition-transform">
+                        <svg className="w-10 h-10 text-[#4FD1C5]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
                         </svg>
                       </div>
@@ -291,14 +291,14 @@ export const UI = ({ hidden, showControls = true, showChat = true }) => {
                   ) : (
                     <div className="text-center relative z-10">
                       <div className="relative w-24 h-24 mx-auto mb-6">
-                        <div className="absolute inset-0 rounded-full border-2 border-teal-500/20" />
-                        <div className="absolute inset-0 rounded-full border-2 border-teal-500 border-t-transparent animate-spin" />
+                        <div className="absolute inset-0 rounded-full border-2 border-[#1A363E]/40" />
+                        <div className="absolute inset-0 rounded-full border-2 border-[#1A363E] border-t-transparent animate-spin" />
                         <div className="absolute inset-0 flex items-center justify-center">
-                          <svg className="w-8 h-8 text-teal-400 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+                          <svg className="w-8 h-8 text-[#4FD1C5] animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
                         </div>
                       </div>
                       <h2 className="text-xl font-bold text-white mb-2 tracking-tight">Initializing Session</h2>
-                      <p className="text-teal-300/80 font-medium text-sm mb-1">Analyzing your credentials…</p>
+                      <p className="text-[#81E6D9] font-medium text-sm mb-1">Analyzing your credentials…</p>
                       <p className="text-gray-500 text-xs">Setting up isolated interview environment</p>
                     </div>
                   )}
@@ -310,8 +310,8 @@ export const UI = ({ hidden, showControls = true, showChat = true }) => {
                 <motion.div key="starting" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                   className="flex-1 flex flex-col items-center justify-center gap-4 p-8"
                 >
-                  <div className="w-16 h-16 rounded-full border-4 border-teal-500 border-t-transparent animate-spin" />
-                  <p className="text-teal-300 font-medium text-center">Generating your personalised questions…</p>
+                  <div className="w-16 h-16 rounded-full border-4 border-[#1A363E] border-t-transparent animate-spin" />
+                  <p className="text-[#81E6D9] font-medium text-center">Generating your personalised questions…</p>
                   <p className="text-gray-500 text-xs text-center">The AI is reading your resume & JD</p>
                 </motion.div>
               )}
@@ -344,15 +344,15 @@ export const UI = ({ hidden, showControls = true, showChat = true }) => {
                   </AnimatePresence>
                   {/* Current question display */}
                   <div className="p-4">
-                    <div className="flex items-start gap-3 bg-teal-950/40 border border-teal-700/30 rounded-2xl p-4">
-                      <div className="w-8 h-8 rounded-full bg-teal-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 mt-0.5">
+                    <div className="flex items-start gap-3 bg-[#1A363E]/80 border border-[#1A363E] rounded-2xl p-4">
+                      <div className="w-8 h-8 rounded-full bg-[#102227] border border-[#2B505A] flex items-center justify-center text-[#4FD1C5] text-xs font-bold flex-shrink-0 mt-0.5">
                         AI
                       </div>
                       <div>
-                        <p className="text-teal-200 text-xs font-semibold mb-1 flex items-center gap-2">
+                        <p className="text-[#81E6D9] text-xs font-semibold mb-1 flex items-center gap-2">
                           <span>Round {currentQuestion?.round} · Question {(currentQuestion?.q_idx ?? 0) + 1} of {currentQuestion?.total_questions}</span>
                           {(currentQuestion?.source_tags || []).map((tag, i) => (
-                            <span key={i} className="bg-teal-500/20 text-teal-300 px-1.5 py-0.5 rounded text-[10px] uppercase border border-teal-500/30">
+                            <span key={i} className="bg-[#102227] text-[#4FD1C5] px-1.5 py-0.5 rounded text-[10px] uppercase border border-[#2B505A]">
                               {tag}
                             </span>
                           ))}
@@ -360,7 +360,7 @@ export const UI = ({ hidden, showControls = true, showChat = true }) => {
                         {loading ? (
                           <div className="flex gap-1.5 py-2">
                             {[0,1,2].map(i => (
-                              <div key={i} className="w-2 h-2 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: `${i * 75}ms` }} />
+                              <div key={i} className="w-2 h-2 bg-[#4FD1C5] rounded-full animate-bounce" style={{ animationDelay: `${i * 75}ms` }} />
                             ))}
                           </div>
                         ) : (
