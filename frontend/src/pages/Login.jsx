@@ -51,7 +51,7 @@ export default function Login() {
       className={`min-h-screen flex flex-col items-center justify-center p-4 relative overflow-hidden transition-all duration-500 cursor-pointer ${isExiting ? 'opacity-0 scale-95' : 'opacity-100'}`}
     >
       {/* Background Glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-indigo-600/10 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-teal-600/10 rounded-full blur-[120px] pointer-events-none" />
 
       <motion.div
         onClick={(e) => e.stopPropagation()}
@@ -89,7 +89,7 @@ export default function Login() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-white/[0.03] border border-white/10 text-white placeholder-gray-500 rounded-xl py-3 pl-12 pr-4 focus:outline-none focus:bg-white/[0.06] focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all duration-300"
+                  className="w-full bg-white/[0.03] border border-white/10 text-white placeholder-gray-500 rounded-xl py-3 pl-12 pr-4 focus:outline-none focus:bg-white/[0.06] focus:border-teal-500/50 focus:ring-1 focus:ring-teal-500/50 transition-all duration-300"
                   placeholder="you@example.com"
                 />
               </div>
@@ -104,7 +104,7 @@ export default function Login() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-white/[0.03] border border-white/10 text-white placeholder-gray-500 rounded-xl py-3 pl-12 pr-4 focus:outline-none focus:bg-white/[0.06] focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all duration-300"
+                  className="w-full bg-white/[0.03] border border-white/10 text-white placeholder-gray-500 rounded-xl py-3 pl-12 pr-4 focus:outline-none focus:bg-white/[0.06] focus:border-teal-500/50 focus:ring-1 focus:ring-teal-500/50 transition-all duration-300"
                   placeholder="••••••••"
                 />
               </div>
@@ -112,10 +112,10 @@ export default function Login() {
 
             <div className="flex items-center justify-between pt-2">
               <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" className="w-4 h-4 rounded border-white/10 bg-white/[0.03] text-purple-500 focus:ring-purple-500/50 focus:ring-offset-gray-950" />
+                <input type="checkbox" className="w-4 h-4 rounded border-white/10 bg-white/[0.03] text-emerald-500 focus:ring-emerald-500/50 focus:ring-offset-gray-950" />
                 <span className="text-sm text-gray-400">Remember me</span>
               </label>
-              <a href="#" className="text-sm text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-pink-400 hover:opacity-80 font-medium transition-opacity">Forgot password?</a>
+              <a href="#" className="text-sm text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-pink-400 hover:opacity-80 font-medium transition-opacity">Forgot password?</a>
             </div>
 
             <button
@@ -132,7 +132,7 @@ export default function Login() {
           </form>
 
           <p className="text-center text-sm text-gray-400 mt-8">
-            Don't have an account? <Link to="/signup" className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-pink-400 font-bold hover:opacity-80 transition-opacity">Sign up</Link>
+            Don't have an account? <Link to="/signup" className="text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-pink-400 font-bold hover:opacity-80 transition-opacity">Sign up</Link>
           </p>
         </div>
       </motion.div>

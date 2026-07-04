@@ -111,7 +111,7 @@ export default function MaterialsLibrary() {
             <div className="lg:col-span-1 space-y-6">
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-[#0a0a0a] border border-gray-800 rounded-3xl p-6">
                 <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
-                  <UploadCloud className="w-5 h-5 text-indigo-400" /> Add New
+                  <UploadCloud className="w-5 h-5 text-teal-400" /> Add New
                 </h2>
                 <form onSubmit={handleUpload} className="space-y-4">
                   <div>
@@ -196,7 +196,7 @@ export default function MaterialsLibrary() {
                     <div key={m.id} className="bg-[#0a0a0a] border border-gray-800 rounded-2xl p-5 flex flex-col justify-between hover:border-gray-600 hover:-translate-y-1 hover:shadow-xl hover:shadow-white/5 transition-all duration-300 group">
                       <div className="flex justify-between items-start mb-3">
                         <div className="flex items-center gap-3">
-                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${m.type === 'resume' ? 'bg-[#111] border border-gray-800 text-indigo-400' : m.type === 'jd' ? 'bg-[#111] border border-gray-800 text-purple-400' : 'bg-[#111] border border-gray-800 text-blue-400'}`}>
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${m.type === 'resume' ? 'bg-[#111] border border-gray-800 text-teal-400' : m.type === 'jd' ? 'bg-[#111] border border-gray-800 text-emerald-400' : 'bg-[#111] border border-gray-800 text-teal-400'}`}>
                             {m.type === 'resume' && <FileText className="w-5 h-5" />}
                             {m.type === 'jd' && <Briefcase className="w-5 h-5" />}
                             {m.type === 'github' && <Code className="w-5 h-5" />}

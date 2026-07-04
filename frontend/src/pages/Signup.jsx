@@ -51,7 +51,7 @@ export default function Signup() {
       className={`min-h-screen flex flex-col items-center justify-center p-4 relative overflow-hidden transition-all duration-500 cursor-pointer ${isExiting ? 'opacity-0 scale-95' : 'opacity-100'}`}
     >
       {/* Background Glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-purple-600/10 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-emerald-600/10 rounded-full blur-[120px] pointer-events-none" />
 
       <motion.div
         onClick={(e) => e.stopPropagation()}
@@ -88,7 +88,7 @@ export default function Signup() {
                 <input
                   type="text"
                   required
-                  className="w-full bg-white/[0.03] border border-white/10 text-white placeholder-gray-500 rounded-xl py-3 pl-12 pr-4 focus:outline-none focus:bg-white/[0.06] focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all duration-300"
+                  className="w-full bg-white/[0.03] border border-white/10 text-white placeholder-gray-500 rounded-xl py-3 pl-12 pr-4 focus:outline-none focus:bg-white/[0.06] focus:border-teal-500/50 focus:ring-1 focus:ring-teal-500/50 transition-all duration-300"
                   placeholder="your name"
                 />
               </div>
@@ -103,7 +103,7 @@ export default function Signup() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-white/[0.03] border border-white/10 text-white placeholder-gray-500 rounded-xl py-3 pl-12 pr-4 focus:outline-none focus:bg-white/[0.06] focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all duration-300"
+                  className="w-full bg-white/[0.03] border border-white/10 text-white placeholder-gray-500 rounded-xl py-3 pl-12 pr-4 focus:outline-none focus:bg-white/[0.06] focus:border-teal-500/50 focus:ring-1 focus:ring-teal-500/50 transition-all duration-300"
                   placeholder="you@example.com"
                 />
               </div>
@@ -118,7 +118,7 @@ export default function Signup() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-white/[0.03] border border-white/10 text-white placeholder-gray-500 rounded-xl py-3 pl-12 pr-4 focus:outline-none focus:bg-white/[0.06] focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all duration-300"
+                  className="w-full bg-white/[0.03] border border-white/10 text-white placeholder-gray-500 rounded-xl py-3 pl-12 pr-4 focus:outline-none focus:bg-white/[0.06] focus:border-teal-500/50 focus:ring-1 focus:ring-teal-500/50 transition-all duration-300"
                   placeholder="••••••••"
                 />
               </div>
@@ -138,7 +138,7 @@ export default function Signup() {
           </form>
 
           <p className="text-center text-sm text-gray-400 mt-8">
-            Already have an account? <Link to="/login" className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-pink-400 font-bold hover:opacity-80 transition-opacity">Log in</Link>
+            Already have an account? <Link to="/login" className="text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-pink-400 font-bold hover:opacity-80 transition-opacity">Log in</Link>
           </p>
         </div>
       </motion.div>

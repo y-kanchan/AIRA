@@ -305,12 +305,12 @@ export default function Dashboard() {
                   </div>
 
                   {resumeMode === "upload" ? (
-                    <label className={`flex flex-col items-center justify-center p-10 rounded-xl border border-dashed ${resumeFile ? "border-indigo-500 bg-indigo-900/10" : "border-gray-800 bg-[#0c0c0c] hover:border-gray-500 hover:bg-[#111]"} cursor-pointer transition-all duration-300 group`}>
+                    <label className={`flex flex-col items-center justify-center p-10 rounded-xl border border-dashed ${resumeFile ? "border-teal-500 bg-teal-900/10" : "border-gray-800 bg-[#0c0c0c] hover:border-gray-500 hover:bg-[#111]"} cursor-pointer transition-all duration-300 group`}>
                       <input type="file" accept=".pdf" className="hidden" onChange={(e) => setResumeFile(e.target.files?.[0] || null)} />
                       <div className="w-10 h-10 bg-gray-800/50 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300 group-hover:bg-gray-700/50">
-                        <FileText className={`w-5 h-5 ${resumeFile ? "text-indigo-400" : "text-gray-400 group-hover:text-white"}`} />
+                        <FileText className={`w-5 h-5 ${resumeFile ? "text-teal-400" : "text-gray-400 group-hover:text-white"}`} />
                       </div>
-                      <span className={`text-sm font-medium mb-1 ${resumeFile ? "text-indigo-300" : "text-white"}`}>
+                      <span className={`text-sm font-medium mb-1 ${resumeFile ? "text-teal-300" : "text-white"}`}>
                         {resumeFile ? resumeFile.name : "Click to browse or drag PDF here"}
                       </span>
                       <span className="text-xs text-gray-500">Maximum file size 5MB</span>
@@ -343,12 +343,12 @@ export default function Dashboard() {
                   </div>
 
                   {jdMode === "file" && (
-                    <label className={`flex items-center gap-4 p-5 rounded-xl border border-dashed ${jdFile ? "border-purple-500 bg-purple-900/10" : "border-gray-800 bg-[#0c0c0c] hover:border-gray-500 hover:bg-[#111]"} cursor-pointer transition-all duration-300 group`}>
+                    <label className={`flex items-center gap-4 p-5 rounded-xl border border-dashed ${jdFile ? "border-emerald-500 bg-emerald-900/10" : "border-gray-800 bg-[#0c0c0c] hover:border-gray-500 hover:bg-[#111]"} cursor-pointer transition-all duration-300 group`}>
                       <input type="file" accept=".pdf" className="hidden" onChange={(e) => setJdFile(e.target.files?.[0] || null)} />
                       <div className="w-10 h-10 bg-gray-800/50 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 group-hover:bg-gray-700/50">
-                        <Briefcase className={`w-5 h-5 ${jdFile ? "text-purple-400" : "text-gray-400 group-hover:text-white"}`} />
+                        <Briefcase className={`w-5 h-5 ${jdFile ? "text-emerald-400" : "text-gray-400 group-hover:text-white"}`} />
                       </div>
-                      <span className={`text-sm font-medium ${jdFile ? "text-purple-300" : "text-gray-400"}`}>{jdFile ? jdFile.name : "Upload JD PDF (optional)"}</span>
+                      <span className={`text-sm font-medium ${jdFile ? "text-emerald-300" : "text-gray-400"}`}>{jdFile ? jdFile.name : "Upload JD PDF (optional)"}</span>
                     </label>
                   )}
                   {jdMode === "text" && (
@@ -554,7 +554,7 @@ export default function Dashboard() {
                         <p className="text-sm font-semibold text-white group-hover:text-gray-300 transition-colors">{item.role}</p>
                         <span className={`text-xs font-bold px-2 py-1 rounded-md ${
                           item.score >= 8 ? 'bg-emerald-900/30 text-emerald-400' :
-                          item.score >= 7 ? 'bg-blue-900/30 text-blue-400' : 'bg-red-900/30 text-red-400'
+                          item.score >= 7 ? 'bg-teal-900/30 text-teal-400' : 'bg-red-900/30 text-red-400'
                         }`}>
                           {item.score}/10
                         </span>

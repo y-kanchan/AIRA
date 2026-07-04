@@ -149,7 +149,7 @@ export default function Home() {
           >
             Ace your next technical interview with
             <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-emerald-400">
               AIRA precision.
             </span>
           </motion.h1>
@@ -194,9 +194,9 @@ export default function Home() {
             { icon: BrainCircuit, title: "Stateful Evaluation", desc: "AIRA remembers your answers and probes deeper into your technical depth." },
             { icon: Code, title: "GitHub Integration", desc: "Provide your GitHub URL and AIRA will ask questions based on your actual projects." },
           ].map((feat, i) => (
-            <div key={i} className="bg-gray-900/50 border border-gray-800 p-6 rounded-2xl backdrop-blur-sm hover:border-indigo-500/50 transition-colors cursor-default">
-              <div className="w-12 h-12 bg-indigo-500/10 rounded-xl flex items-center justify-center mb-4">
-                <feat.icon className="w-6 h-6 text-indigo-400" />
+            <div key={i} className="bg-gray-900/50 border border-gray-800 p-6 rounded-2xl backdrop-blur-sm hover:border-teal-500/50 transition-colors cursor-default">
+              <div className="w-12 h-12 bg-teal-500/10 rounded-xl flex items-center justify-center mb-4">
+                <feat.icon className="w-6 h-6 text-teal-400" />
               </div>
               <h3 className="text-lg font-bold text-white mb-2">{feat.title}</h3>
               <p className="text-sm text-gray-400 leading-relaxed">{feat.desc}</p>
