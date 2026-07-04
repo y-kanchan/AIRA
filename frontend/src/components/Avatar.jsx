@@ -113,7 +113,7 @@ export function Avatar(props) {
       return;
     }
 
-    const delayMs = message.isIntro ? 2000 : 4000;
+    const delayMs = message.isIntro ? 2000 : 200;
     let audioTimeoutId;
     let audioEl;
 
@@ -178,7 +178,7 @@ export function Avatar(props) {
       return;
     }
 
-    const delayMs = message.isIntro ? 2000 : 4000;
+    const delayMs = message.isIntro ? 2000 : 200;
     const timeouts = [];
 
     // Execute each animation timeline entry at specified times
