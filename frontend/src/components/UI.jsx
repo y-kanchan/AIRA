@@ -330,7 +330,7 @@ export const UI = ({ hidden, showControls = true, showChat = true }) => {
                     {interviewPhase === "transitioning" && (
                       <motion.div 
                         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="absolute inset-0 bg-[#070707]/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center rounded-2xl border border-gray-800"
+                        className="fixed inset-0 w-screen h-screen bg-[#070707]/80 backdrop-blur-sm z-[200] flex flex-col items-center justify-center"
                       >
                         <motion.div 
                           key={transitionCountdown}
@@ -414,7 +414,7 @@ export const UI = ({ hidden, showControls = true, showChat = true }) => {
                   </div>
 
                   {/* Answer input */}
-                  <div className="p-6 bg-gray-950/95 border-t border-gray-800 flex flex-col items-center justify-center min-h-[140px] relative">
+                  <div className="p-6 flex flex-col items-center justify-center min-h-[140px] relative">
                     
                     {spokenText && (
                       <div className="w-full max-w-2xl flex items-center justify-between bg-gray-900/70 p-4 rounded-2xl border border-indigo-500/30 mb-6 shadow-inner">
