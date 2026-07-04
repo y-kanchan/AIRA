@@ -60,13 +60,13 @@ const Timer = ({ active, limit, onExpire }) => {
 };
 
 const PhaseIndicator = ({ phase, round, maxRounds, qIdx, total }) => {
-  const phases = ["upload", "uploading", "starting", "interviewing", "complete"];
+  const phases = ["upload", "uploading", "starting", "interviewing", "transitioning", "complete"];
   const step = phases.indexOf(phase);
   return (
     <div className="flex items-center justify-center gap-2 py-2">
       {["Upload", "Interview", "Report"].map((label, i) => {
-        const active = (i === 0 && step <= 1) || (i === 1 && step === 3) || (i === 2 && step === 4);
-        const done   = (i === 0 && step > 1)  || (i === 1 && step > 3);
+        const active = (i === 0 && step <= 1) || (i === 1 && (step === 3 || step === 4)) || (i === 2 && step === 5);
+        const done   = (i === 0 && step > 1)  || (i === 1 && step > 4);
         return (
           <div key={label} className="flex items-center gap-2">
             <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-all
@@ -80,7 +80,7 @@ const PhaseIndicator = ({ phase, round, maxRounds, qIdx, total }) => {
           </div>
         );
       })}
-      {phase === "interviewing" && (
+      {(phase === "interviewing" || phase === "transitioning") && (
         <span className="ml-4 text-xs text-indigo-300">
           R{round}/{maxRounds} · Q{qIdx + 1}/{total}
         </span>
@@ -97,10 +97,11 @@ export const UI = ({ hidden, showControls = true, showChat = true }) => {
     loading, cameraZoomed, setCameraZoomed,
     interviewPhase, currentQuestion, answers, report, uploadError,
     uploadDocuments, submitAnswer, resetInterview, message, sessionId,
+    transitionCountdown,
   } = useChat();
 
   const timeLimit = parseInt(localStorage.getItem("aira_time_limit") || "30");
-  const isTimerActive = interviewPhase === "interviewing" && !message && !loading;
+  const isTimerActive = (interviewPhase === "interviewing" || interviewPhase === "transitioning") && !message && !loading;
   
   const [timeExpired, setTimeExpired] = useState(false);
 
@@ -285,10 +286,31 @@ export const UI = ({ hidden, showControls = true, showChat = true }) => {
               )}
 
               {/* ── INTERVIEW PHASE ── */}
-              {interviewPhase === "interviewing" && (
+              {(interviewPhase === "interviewing" || interviewPhase === "transitioning") && (
                 <motion.div key="interview" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                  className="flex flex-col h-full"
+                  className="flex flex-col h-full relative"
                 >
+                  {/* Transition Overlay */}
+                  <AnimatePresence>
+                    {interviewPhase === "transitioning" && (
+                      <motion.div 
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        className="absolute inset-0 bg-[#070707]/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center rounded-2xl border border-gray-800"
+                      >
+                        <motion.div 
+                          key={transitionCountdown}
+                          initial={{ scale: 0.5, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          exit={{ scale: 1.5, opacity: 0 }}
+                          transition={{ duration: 0.5 }}
+                          className="text-7xl font-black text-white drop-shadow-[0_0_20px_rgba(99,102,241,0.5)]"
+                        >
+                          {transitionCountdown}
+                        </motion.div>
+                        <p className="text-gray-300 mt-6 font-medium tracking-widest uppercase text-sm">Next Question Starting</p>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                   {/* Current question display */}
                   <div className="p-4 border-b border-gray-800">
                     <div className="flex items-start gap-3 bg-indigo-950/40 border border-indigo-700/30 rounded-2xl p-4">
@@ -348,7 +370,7 @@ export const UI = ({ hidden, showControls = true, showChat = true }) => {
                               minimap: { enabled: false }, 
                               fontSize: 14, 
                               padding: { top: 16 },
-                              readOnly: loading || timeExpired 
+                              readOnly: loading || timeExpired || interviewPhase === "transitioning"
                             }}
                           />
                         </motion.div>
@@ -362,7 +384,7 @@ export const UI = ({ hidden, showControls = true, showChat = true }) => {
                       <textarea
                         ref={answerRef}
                         rows={3}
-                        disabled={loading || timeExpired}
+                        disabled={loading || timeExpired || interviewPhase === "transitioning"}
                         placeholder={timeExpired ? "Time's up! Please click submit to proceed." : "Type your answer here… or use the mic"}
                         className="flex-1 bg-gray-900/70 text-white placeholder:text-gray-500 p-3 rounded-xl border border-gray-700/50 focus:border-indigo-500 focus:outline-none text-sm resize-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                         onKeyDown={(e) => {
@@ -372,7 +394,7 @@ export const UI = ({ hidden, showControls = true, showChat = true }) => {
                       <div className="flex flex-col gap-2">
                         <button
                           onClick={toggleMic}
-                          disabled={loading || timeExpired}
+                          disabled={loading || timeExpired || interviewPhase === "transitioning"}
                           className={`p-3 rounded-xl transition-all duration-300 border
                             ${isListening ? "bg-red-600/30 border-red-500 text-red-300 animate-pulse" : "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700"}
                             disabled:opacity-50 disabled:cursor-not-allowed`}
@@ -383,9 +405,9 @@ export const UI = ({ hidden, showControls = true, showChat = true }) => {
                         </button>
                         <button
                           onClick={handleAnswer}
-                          disabled={loading}
+                          disabled={loading || interviewPhase === "transitioning"}
                           className={`p-3 rounded-xl font-bold transition-all duration-300
-                            ${loading ? "bg-gray-800 text-gray-500 cursor-not-allowed" : "bg-indigo-600 hover:bg-indigo-500 text-white"}`}
+                            ${(loading || interviewPhase === "transitioning") ? "bg-gray-800 text-gray-500 cursor-not-allowed" : "bg-indigo-600 hover:bg-indigo-500 text-white"}`}
                         >
                           {loading
                             ? <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>

@@ -212,9 +212,9 @@ def generate_interview_report(answers: List[dict], context: str) -> str:
     prompt = f"""Evaluate this entire interview and return a JSON object with EXACTLY these 15 parameters:
 {{
   "overall_score": <1-10>,
-  "confidence_score": <1-10>,
+  "relevance_to_role": <1-10>,
   "technical_depth": <1-10>,
-  "clarity_and_communication": <1-10>,
+  "structural_logic": <1-10>,
   "problem_solving_ability": <1-10>,
   "ai_detection_probability": <0-100 integer representing %>,
   "industry_readiness": <1-10>,
@@ -222,7 +222,7 @@ def generate_interview_report(answers: List[dict], context: str) -> str:
   "leadership_potential": <1-10>,
   "critical_thinking": <1-10>,
   "domain_knowledge": <1-10>,
-  "grammar_and_fluency": <1-10>,
+  "practical_experience": <1-10>,
   "handling_ambiguity": <1-10>,
   "key_strengths": ["<strength1>", "<strength2>"],
   "areas_for_improvement": ["<improvement1>", "<improvement2>"]

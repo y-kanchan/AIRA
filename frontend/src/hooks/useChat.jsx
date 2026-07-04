@@ -22,6 +22,7 @@ export const ChatProvider = ({ children }) => {
   const [answers, setAnswers]   = useState([]);   // history of {question, answer}
   const [report, setReport]     = useState(null);
   const [uploadError, setUploadError] = useState(null);
+  const [transitionCountdown, setTransitionCountdown] = useState(0);
 
   // Ping backend on load to show terminal activity
   useEffect(() => {
@@ -156,8 +157,19 @@ export const ChatProvider = ({ children }) => {
           ]
         });
       } else {
-        setCurrentQuestion(data);
-        _pushAvatarMessage(data);
+        setInterviewPhase("transitioning");
+        setTransitionCountdown(3);
+        let countdown = 3;
+        const tick = setInterval(() => {
+          countdown -= 1;
+          setTransitionCountdown(countdown);
+          if (countdown <= 0) {
+            clearInterval(tick);
+            setCurrentQuestion(data);
+            _pushAvatarMessage(data);
+            setInterviewPhase("interviewing");
+          }
+        }, 1000);
       }
     } catch (e) {
       console.error("Answer submit error:", e);
@@ -196,6 +208,7 @@ export const ChatProvider = ({ children }) => {
       uploadDocuments,
       submitAnswer,
       resetInterview,
+      transitionCountdown,
     }}>
       {children}
     </ChatContext.Provider>

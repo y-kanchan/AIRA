@@ -65,16 +65,16 @@ export default function Report() {
 
   const scoreItems = [
     { label: "Overall Score", value: params.overall_score },
-    { label: "Confidence", value: params.confidence_score },
+    { label: "Relevance", value: params.relevance_to_role },
     { label: "Technical Depth", value: params.technical_depth },
-    { label: "Communication", value: params.clarity_and_communication },
+    { label: "Structural Logic", value: params.structural_logic },
     { label: "Problem Solving", value: params.problem_solving_ability },
     { label: "Industry Ready", value: params.industry_readiness },
     { label: "Cultural Fit", value: params.cultural_fit },
     { label: "Leadership", value: params.leadership_potential },
     { label: "Critical Thinking", value: params.critical_thinking },
     { label: "Domain Knowledge", value: params.domain_knowledge },
-    { label: "Grammar & Fluency", value: params.grammar_and_fluency },
+    { label: "Practical Experience", value: params.practical_experience },
     { label: "Handling Ambiguity", value: params.handling_ambiguity },
   ];
 
