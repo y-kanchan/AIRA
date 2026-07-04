@@ -16,7 +16,9 @@ export default function InterviewRoom() {
         This keeps the center exactly at 1/3 of the screen (16.666vw), 
         but gives the Canvas physical rendering space all the way to 100vw on the right!
       */}
-      <div className="absolute top-0 left-0 w-full lg:w-[166.666vw] lg:ml-[-66.666vw] h-[50vh] lg:h-full z-10">
+      <div 
+        className="absolute top-0 left-0 w-full h-[50vh] lg:h-full z-10 avatar-canvas-container"
+      >
         <Loader />
         <Leva hidden />
         <Canvas shadows camera={{ position: [0, 0, 1], fov: 30 }}>

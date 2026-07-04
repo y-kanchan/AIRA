@@ -72,3 +72,10 @@
 .message {
   animation: messageIn 0.3s ease forwards;
 }
+
+@media (min-width: 1024px) {
+  .avatar-canvas-container {
+    width: 166.666vw !important;
+    margin-left: -66.666vw !important;
+  }
+}
