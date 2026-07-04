@@ -7,9 +7,12 @@ import re
 import json
 import httpx
 import pdfplumber
-import chromadb
+import os
+import re
+import json
+import httpx
+import pdfplumber
 import asyncio
-from chromadb.utils import embedding_functions
 from pathlib import Path
 from typing import List, Optional
 
@@ -17,39 +20,7 @@ OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3")
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")
 
-# ── Cloud-Friendly In-Memory ChromaDB Pattern ─────────────────────────────────
 
-_client = None
-_collection = None
-_ready = False
-_build_lock = asyncio.Lock()
-
-# DefaultEmbeddingFunction uses ONNX all-MiniLM-L6-v2 (~80MB).
-# No PyTorch dependency means it easily fits in cloud free tiers!
-_embedding_fn = embedding_functions.DefaultEmbeddingFunction()
-
-def _get_client():
-    global _client
-    if _client is None:
-        _client = chromadb.Client()  # in-memory, no disk needed
-    return _client
-
-async def ensure_index_ready():
-    global _ready, _collection
-    if _ready and _collection is not None:
-        return _collection
-    async with _build_lock:
-        if _ready and _collection is not None:
-            return _collection
-        
-        client = _get_client()
-        _collection = client.get_or_create_collection(
-            name="aira_interviews",
-            embedding_function=_embedding_fn,
-            metadata={"hnsw:space": "cosine"},
-        )
-        _ready = True
-        return _collection
 
 
 def _chunk_text(text: str, chunk_size: int = 500, overlap: int = 100) -> List[str]:
@@ -143,45 +114,8 @@ async def ingest_documents(
     jd_text: str,
     github_text: str
 ) -> str:
-    """Chunk and embed all documents into ChromaDB. Returns combined context summary."""
-    collection = await ensure_index_ready()
+    """Builds the context summary from documents."""
 
-    # Delete existing docs for this session if re-ingesting
-    try:
-        existing = await asyncio.to_thread(collection.get, where={"session_id": session_id})
-        if existing and existing.get("ids"):
-            await asyncio.to_thread(collection.delete, ids=existing["ids"])
-    except Exception:
-        pass
-
-    all_docs = []
-    all_ids = []
-    all_metas = []
-
-    # Ingest resume
-    for i, chunk in enumerate(_chunk_text(resume_text)):
-        all_docs.append(chunk)
-        all_ids.append(f"{session_id}_resume_{i}")
-        all_metas.append({"session_id": session_id, "source": "resume", "chunk": i})
-
-    # Ingest JD
-    for i, chunk in enumerate(_chunk_text(jd_text)):
-        all_docs.append(chunk)
-        all_ids.append(f"{session_id}_jd_{i}")
-        all_metas.append({"session_id": session_id, "source": "jd", "chunk": i})
-
-    # Ingest GitHub content
-    if github_text:
-        for i, chunk in enumerate(_chunk_text(github_text)):
-            all_docs.append(chunk)
-            all_ids.append(f"{session_id}_github_{i}")
-            all_metas.append({"session_id": session_id, "source": "github", "chunk": i})
-
-    if all_docs:
-        # Embedding is CPU-bound (ONNX). Run it OFF the event loop!
-        await asyncio.to_thread(
-            collection.upsert, ids=all_ids, documents=all_docs, metadatas=all_metas
-        )
 
     # Build concise context summary for LLM prompts
     context_parts = []
@@ -205,17 +139,4 @@ async def ingest_documents(
     })
 
 
-async def retrieve_context(query: str, session_id: str, n_results: int = 5) -> str:
-    """Query ChromaDB for relevant context chunks."""
-    try:
-        collection = await ensure_index_ready()
-        results = await asyncio.to_thread(
-            collection.query, 
-            query_texts=[query], 
-            n_results=n_results,
-            where={"session_id": session_id}
-        )
-        docs = results.get("documents", [[]])[0]
-        return "\n\n".join(docs)
-    except Exception as e:
-        return f"[Context retrieval error: {e}]"
+

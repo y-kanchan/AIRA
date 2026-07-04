@@ -23,7 +23,7 @@ export default function MaterialsLibrary() {
     const token = localStorage.getItem("ai_tutor_token");
     if (!token) return navigate("/login");
     try {
-      const res = await fetch((import.meta.env.VITE_API_URL || "https://aira-u9qv.onrender.com") + "/user/materials", {
+      const res = await fetch((import.meta.env.VITE_API_URL || "http://localhost:8000") + "/user/materials", {
         headers: { "Authorization": `Bearer ${token}` }
       });
       if (res.ok) {
@@ -38,17 +38,22 @@ export default function MaterialsLibrary() {
   };
 
   const handleDelete = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this material?")) return;
     const token = localStorage.getItem("ai_tutor_token");
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || "https://aira-u9qv.onrender.com"}/user/materials/${id}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:8000"}/user/materials/${id}`, {
         method: "DELETE",
         headers: { "Authorization": `Bearer ${token}` }
       });
       if (res.ok) {
         setMaterials(materials.filter(m => m.id !== id));
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert(`Delete failed: ${res.status} ${err.detail || ''}`);
       }
     } catch (e) {
       console.error(e);
+      alert(`Delete error: ${e.message}`);
     }
   };
 
@@ -67,7 +72,7 @@ export default function MaterialsLibrary() {
     if (content) formData.append("content", content);
 
     try {
-      const res = await fetch((import.meta.env.VITE_API_URL || "https://aira-u9qv.onrender.com") + "/user/materials/upload", {
+      const res = await fetch((import.meta.env.VITE_API_URL || "http://localhost:8000") + "/user/materials/upload", {
         method: "POST",
         headers: { "Authorization": `Bearer ${token}` },
         body: formData

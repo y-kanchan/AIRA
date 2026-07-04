@@ -3,7 +3,6 @@
 ![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi)
 ![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
 ![Groq](https://img.shields.io/badge/Groq-f55036?style=for-the-badge&logo=groq&logoColor=white)
-![ChromaDB](https://img.shields.io/badge/ChromaDB-FF4D4D?style=for-the-badge)
 
 An interactive, real-time AI technical interviewer that conducts targeted interviews based on a candidate's Resume, Job Description, and GitHub portfolio. It features a fully animated 3D avatar with real-time lip-syncing for a highly immersive experience.
 
@@ -11,7 +10,11 @@ An interactive, real-time AI technical interviewer that conducts targeted interv
 
 ## 🚀 Overview
 
-The **AI Interview Platform** is designed to simulate a professional technical interview. It uses a **Retrieval-Augmented Generation (RAG)** pipeline to deeply understand the candidate's background by ingesting their uploaded Resume and Job Description.
+The **AI Interview Platform** is designed to simulate a professional technical interview. It uses a **Vectorless Retrieval-Augmented Generation (RAG)** pipeline to deeply understand the candidate's background by extracting text directly from their uploaded Resume and Job Description.
+
+### 🧠 Why Vectorless RAG?
+Traditional RAG systems slice documents into math vectors and store them in heavy databases (like ChromaDB or Pinecone). This "Vector RAG" approach often destroys the flow of chronological documents like resumes, uses hundreds of megabytes of RAM, and slows down deployments. 
+By utilizing a **Vectorless Architecture (LangGraph Map-Reduce)**, AIRA extracts the raw text and hands it directly to the LLM. This provides the AI with a **perfect, holistic view** of the candidate's entire career timeline, guarantees instant execution times, and allows the platform to run seamlessly on a 512MB RAM free-tier cloud server without crashing.
 
 It leverages the blazing-fast **Groq API (Llama-3.3-70B-Versatile)** to generate highly specific, context-aware technical questions, and uses **LangGraph** to maintain a stateful interview loop. The responses are vocalized by a dynamic **3D Avatar** using **Sarvam AI Text-to-Speech** and the **Rhubarb Lip-Sync** engine.
 
@@ -25,7 +28,7 @@ Our architecture completely discards traditional, blocking LLM patterns. Instead
 During document upload, the system does not process files sequentially. Instead, it utilizes the LangGraph `Send` API to perform dynamic, parallel agent orchestration.
 *   **Dynamic Agent Spawning**: The router intercepts the upload payload and instantly spawns exactly `N` specialized agents. If a user uploads 1 Resume, 1 JD, and 5 GitHub Repositories, the system instantly spawns **7 independent agents** operating on distinct background threads.
 *   **Asymmetric Execution**: Network-bound agents (GitHub scrapers) and CPU-bound agents (PDF extractors) execute completely concurrently. The total ingestion latency is governed solely by the single slowest document, achieving a pure `O(1)` time complexity relative to the number of documents.
-*   **Vector Reduction**: Once all spawned agents complete, a central Reducer node aggregates the multimodal data, generates embeddings via `SentenceTransformers`, and hydrates the ChromaDB vector store.
+*   **Context Reduction (Vectorless)**: Once all spawned agents complete, a central Reducer node aggregates the multimodal text into a highly compressed, holistic semantic context summary, completely bypassing slow math embeddings and heavy vector databases.
 
 ### 2. Phase 2: The Continuous Adaptive Queue (Zero-Delay UI)
 Traditional AI interviews suffer from a "stop-and-think" bottleneck where the UI freezes while the LLM generates the next question. We solved this by implementing a **Hybrid, Non-Blocking Adaptive Queue**.
@@ -51,11 +54,11 @@ graph TD
         Router -- "Send API (Parallel Thread 2)" --> A2[Extractor Agent: JD]:::agent
         Router -- "Send API (Parallel Thread 3..N)" --> A3[Scraper Agent: GitHub 1..N]:::agent
         
-        A1 & A2 & A3 --> Reducer[Reducer: Vector Embeddings]
-        Reducer --> Chroma[(ChromaDB)]:::db
+        A1 & A2 & A3 --> Reducer[Reducer: Context Aggregation]
+        Reducer --> Context[(In-Memory Context)]:::db
     end
 
-    Chroma --> InitQueue
+    Context --> InitQueue
 
     subgraph "Phase 2: Hybrid Adaptive Queue (Zero-Delay Loop)"
         InitQueue[Generator Agent: Build Initial 5 Questions]:::agent --> QQueue[(MongoDB: Active Question Queue)]:::db
@@ -98,8 +101,6 @@ graph TD
 ### Backend
 * **FastAPI** (Python) - High-performance asynchronous API
 * **LangGraph** - Complex state machine orchestration for the interview loop
-* **ChromaDB** - Local vector database for RAG document retrieval
-* **Sentence-Transformers** - Open-source embeddings (`all-MiniLM-L6-v2`)
 * **Rhubarb Lip Sync** - Command-line tool to generate mouth cues from audio
 
 ### AI Services
@@ -144,7 +145,6 @@ conda activate ai-interview
 pip install -r requirements.txt
 python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
-*Note: The first time you upload a document, the backend will automatically download the ~80MB Sentence-Transformer embedding model.*
 
 ### 4. Frontend Setup
 Open a new terminal window, install npm packages, and start the Vite dev server:
@@ -176,7 +176,7 @@ AI_Tutor/
 │   ├── main.py                 # FastAPI application entry point
 │   ├── routers/                # API route handlers (interview.py)
 │   ├── services/               # Core business logic
-│   │   ├── rag.py              # ChromaDB and Document parsing logic
+│   │   ├── rag.py              # Document parsing and text extraction
 │   │   ├── interview_graph.py  # LangGraph state machine definition
 │   │   ├── ollama_client.py    # Groq LLM integration client
 │   │   └── sarvam_tts.py       # Sarvam AI TTS and FFmpeg/Rhubarb sync

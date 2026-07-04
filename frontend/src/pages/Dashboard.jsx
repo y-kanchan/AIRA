@@ -61,7 +61,7 @@ export default function Dashboard() {
       }
       
       try {
-        const res = await fetch((import.meta.env.VITE_API_URL || "https://aira-u9qv.onrender.com") + "/user/history", {
+        const res = await fetch((import.meta.env.VITE_API_URL || "http://localhost:8000") + "/user/history", {
           headers: {
             "Authorization": `Bearer ${token}`
           }
@@ -79,7 +79,7 @@ export default function Dashboard() {
         }
         
         // Fetch Settings
-        const settingsRes = await fetch((import.meta.env.VITE_API_URL || "https://aira-u9qv.onrender.com") + "/user/settings", {
+        const settingsRes = await fetch((import.meta.env.VITE_API_URL || "http://localhost:8000") + "/user/settings", {
           headers: { "Authorization": `Bearer ${token}` }
         });
         if (settingsRes.ok) {
@@ -89,7 +89,7 @@ export default function Dashboard() {
         }
 
         // Fetch Materials
-        const matsRes = await fetch((import.meta.env.VITE_API_URL || "https://aira-u9qv.onrender.com") + "/user/materials", {
+        const matsRes = await fetch((import.meta.env.VITE_API_URL || "http://localhost:8000") + "/user/materials", {
           headers: { "Authorization": `Bearer ${token}` }
         });
         if (matsRes.ok) {
@@ -113,7 +113,7 @@ export default function Dashboard() {
     if (!token) return;
     setSavingSettings(true);
     try {
-      await fetch((import.meta.env.VITE_API_URL || "https://aira-u9qv.onrender.com") + "/user/settings", {
+      await fetch((import.meta.env.VITE_API_URL || "http://localhost:8000") + "/user/settings", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify({ time_limit: newLimit })
@@ -136,7 +136,7 @@ export default function Dashboard() {
       if (file) formData.append("file", file);
       if (content) formData.append("content", content);
       
-      const res = await fetch((import.meta.env.VITE_API_URL || "https://aira-u9qv.onrender.com") + "/user/materials/upload", {
+      const res = await fetch((import.meta.env.VITE_API_URL || "http://localhost:8000") + "/user/materials/upload", {
         method: "POST",
         headers: { "Authorization": `Bearer ${token}` },
         body: formData
@@ -167,19 +167,24 @@ export default function Dashboard() {
   };
 
   const deleteMaterial = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this material?")) return;
     const token = localStorage.getItem("ai_tutor_token");
     if (!token) return;
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || "https://aira-u9qv.onrender.com"}/user/materials/${id}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:8000"}/user/materials/${id}`, {
         method: "DELETE",
         headers: { "Authorization": `Bearer ${token}` }
       });
       if (res.ok) {
         setMaterials(materials.filter(m => m.id !== id));
         setSelectedMaterials(selectedMaterials.filter(m => m !== id));
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert(`Delete failed: ${res.status} ${err.detail || ''}`);
       }
     } catch (e) {
       console.error(e);
+      alert(`Delete error: ${e.message}`);
     }
   };
 
@@ -283,6 +288,10 @@ export default function Dashboard() {
                     <h3 className="text-xs font-bold text-gray-400 tracking-wider flex items-center gap-2 uppercase">
                       <FileText className="w-4 h-4" /> 1. Upload Resume (Required)
                     </h3>
+                    <div className="flex bg-[#111] border border-gray-800 rounded-lg p-1">
+                      <button onClick={() => setResumeMode("upload")} className={`text-xs px-3 py-1.5 rounded-md transition-all ${resumeMode === "upload" ? "bg-gray-700 text-white" : "text-gray-500 hover:text-gray-300"}`}>Upload</button>
+                      <button onClick={() => setResumeMode("library")} className={`text-xs px-3 py-1.5 rounded-md transition-all ${resumeMode === "library" ? "bg-gray-700 text-white" : "text-gray-500 hover:text-gray-300"}`}>Library</button>
+                    </div>
                   </div>
 
                   {resumeMode === "upload" ? (
@@ -319,6 +328,7 @@ export default function Dashboard() {
                     <div className="flex bg-[#111] border border-gray-800 rounded-lg p-1">
                       <button onClick={() => setJdMode("file")} className={`text-xs px-3 py-1.5 rounded-md transition-all ${jdMode === "file" ? "bg-gray-700 text-white" : "text-gray-500 hover:text-gray-300"}`}>PDF</button>
                       <button onClick={() => setJdMode("text")} className={`text-xs px-3 py-1.5 rounded-md transition-all ${jdMode === "text" ? "bg-gray-700 text-white" : "text-gray-500 hover:text-gray-300"}`}>Text</button>
+                      <button onClick={() => setJdMode("library")} className={`text-xs px-3 py-1.5 rounded-md transition-all ${jdMode === "library" ? "bg-gray-700 text-white" : "text-gray-500 hover:text-gray-300"}`}>Library</button>
                     </div>
                   </div>
 
@@ -334,6 +344,18 @@ export default function Dashboard() {
                   {jdMode === "text" && (
                     <textarea rows={4} value={jdText} onChange={(e) => setJdText(e.target.value)} placeholder="Paste the job description here…" className="w-full bg-[#0c0c0c] text-white placeholder:text-gray-600 p-5 rounded-xl border border-gray-800 focus:border-gray-600 focus:outline-none text-sm resize-none" />
                   )}
+                  {jdMode === "library" && (
+                    <select 
+                      value={selectedJdId} 
+                      onChange={(e) => setSelectedJdId(e.target.value)}
+                      className="w-full bg-[#0c0c0c] text-white p-4 rounded-xl border border-gray-800 focus:border-gray-600 focus:outline-none"
+                    >
+                      <option value="">-- Select a saved JD --</option>
+                      {materials.filter(m => m.type === 'jd').map(m => (
+                        <option key={m.id} value={m.id}>{m.name}</option>
+                      ))}
+                    </select>
+                  )}
                 </div>
 
                 {/* 3. GITHUB CONTEXT */}
@@ -342,37 +364,56 @@ export default function Dashboard() {
                     <h3 className="text-xs font-bold text-gray-400 tracking-wider flex items-center gap-2 uppercase">
                       <Code className="w-4 h-4" /> 3. Github Context
                     </h3>
+                    <div className="flex bg-[#111] border border-gray-800 rounded-lg p-1">
+                      <button onClick={() => setGithubMode("url")} className={`text-xs px-3 py-1.5 rounded-md transition-all ${githubMode === "url" ? "bg-gray-700 text-white" : "text-gray-500 hover:text-gray-300"}`}>Link</button>
+                      <button onClick={() => setGithubMode("library")} className={`text-xs px-3 py-1.5 rounded-md transition-all ${githubMode === "library" ? "bg-gray-700 text-white" : "text-gray-500 hover:text-gray-300"}`}>Library</button>
+                    </div>
                   </div>
 
-                  <div className="flex gap-2">
-                    <input
-                      type="url"
-                      value={newGithubUrl}
-                      onChange={(e) => setNewGithubUrl(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addGithubUrl())}
-                      placeholder="https://github.com/username/repo"
-                      className="flex-1 bg-[#0c0c0c] text-white placeholder:text-gray-600 p-4 rounded-xl border border-gray-800 focus:border-gray-600 focus:outline-none text-sm"
-                    />
-                      <button 
-                        type="button" 
-                        onClick={addGithubUrl}
-                        className="px-6 bg-gray-800 hover:bg-gray-600 text-white font-medium rounded-xl border border-gray-700 hover:border-gray-500 transition-all duration-300"
-                      >
-                        Add
-                      </button>
-                  </div>
-                  
-                  {githubUrls.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-4">
-                      {githubUrls.map((url, i) => (
-                        <span key={i} className="inline-flex items-center gap-2 bg-gray-900 text-gray-300 text-xs px-3 py-1.5 rounded-lg border border-gray-800">
-                          <span className="truncate max-w-[200px]">{url.replace("https://github.com/", "")}</span>
-                          <button type="button" onClick={() => removeGithubUrl(url)} className="text-gray-500 hover:text-white">
-                            &times;
+                  {githubMode === "url" ? (
+                    <>
+                      <div className="flex gap-2">
+                        <input
+                          type="url"
+                          value={newGithubUrl}
+                          onChange={(e) => setNewGithubUrl(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addGithubUrl())}
+                          placeholder="https://github.com/username/repo"
+                          className="flex-1 bg-[#0c0c0c] text-white placeholder:text-gray-600 p-4 rounded-xl border border-gray-800 focus:border-gray-600 focus:outline-none text-sm"
+                        />
+                          <button 
+                            type="button" 
+                            onClick={addGithubUrl}
+                            className="px-6 bg-gray-800 hover:bg-gray-600 text-white font-medium rounded-xl border border-gray-700 hover:border-gray-500 transition-all duration-300"
+                          >
+                            Add
                           </button>
-                        </span>
+                      </div>
+                      
+                      {githubUrls.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-4">
+                          {githubUrls.map((url, i) => (
+                            <span key={i} className="inline-flex items-center gap-2 bg-gray-900 text-gray-300 text-xs px-3 py-1.5 rounded-lg border border-gray-800">
+                              <span className="truncate max-w-[200px]">{url.replace("https://github.com/", "")}</span>
+                              <button type="button" onClick={() => removeGithubUrl(url)} className="text-gray-500 hover:text-white">
+                                &times;
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <select 
+                      value={selectedGithubId} 
+                      onChange={(e) => setSelectedGithubId(e.target.value)}
+                      className="w-full bg-[#0c0c0c] text-white p-4 rounded-xl border border-gray-800 focus:border-gray-600 focus:outline-none"
+                    >
+                      <option value="">-- Select a saved GitHub link --</option>
+                      {materials.filter(m => m.type === 'github').map(m => (
+                        <option key={m.id} value={m.id}>{m.name}</option>
                       ))}
-                    </div>
+                    </select>
                   )}
                 </div>
 

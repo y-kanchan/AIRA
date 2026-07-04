@@ -14,7 +14,7 @@ export default function Report() {
   useEffect(() => {
     const fetchReport = async () => {
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL || "https://aira-u9qv.onrender.com"}/interview/report/${sessionId}`);
+        const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:8000"}/interview/report/${sessionId}`);
         if (!res.ok) throw new Error("Failed to load report");
         const json = await res.json();
         

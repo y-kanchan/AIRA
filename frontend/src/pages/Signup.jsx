@@ -24,7 +24,7 @@ export default function Signup() {
     setError("");
 
     try {
-      const response = await fetch((import.meta.env.VITE_API_URL || "https://aira-u9qv.onrender.com") + "/auth/signup", {
+      const response = await fetch((import.meta.env.VITE_API_URL || "http://localhost:8000") + "/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password })
