@@ -101,9 +101,24 @@ export const UI = ({ hidden, showControls = true, showChat = true }) => {
   } = useChat();
 
   const timeLimit = parseInt(localStorage.getItem("aira_time_limit") || "30");
-  const isTimerActive = (interviewPhase === "interviewing" || interviewPhase === "transitioning") && !message && !loading;
-  
   const [timeExpired, setTimeExpired] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [spokenText, setSpokenText] = useState("");
+
+  useEffect(() => {
+    const handleFullscreenChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    setIsFullscreen(!!document.fullscreenElement);
+    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, []);
+
+  const requestFullscreen = () => {
+    if (document.documentElement.requestFullscreen) {
+      document.documentElement.requestFullscreen().catch(err => console.error(err));
+    }
+  };
+
+  const isTimerActive = (interviewPhase === "interviewing" || interviewPhase === "transitioning") && !message && !loading && isFullscreen;
 
   useEffect(() => {
     if (!isTimerActive) {
@@ -114,7 +129,6 @@ export const UI = ({ hidden, showControls = true, showChat = true }) => {
   /* upload state moved to Dashboard */
 
   /* answer input */
-  const answerRef = useRef();
   const [isListening, setIsListening] = useState(false);
   const [code, setCode] = useState("");
   const recognition = useRef(null);
@@ -125,10 +139,14 @@ export const UI = ({ hidden, showControls = true, showChat = true }) => {
     if (SR) {
       recognition.current = new SR();
       recognition.current.lang = "en-US";
-      recognition.current.interimResults = false;
+      recognition.current.continuous = true;
+      recognition.current.interimResults = true;
       recognition.current.onresult = (e) => {
-        answerRef.current && (answerRef.current.value = e.results[0][0].transcript);
-        setIsListening(false);
+        let transcript = "";
+        for (let i = 0; i < e.results.length; i++) {
+          transcript += e.results[i][0].transcript;
+        }
+        setSpokenText(transcript);
       };
       recognition.current.onerror = () => setIsListening(false);
       recognition.current.onend   = () => setIsListening(false);
@@ -144,12 +162,10 @@ export const UI = ({ hidden, showControls = true, showChat = true }) => {
   // Upload handler moved to Dashboard
 
   const handleAnswer = () => {
-    const text = answerRef.current?.value?.trim();
+    const text = spokenText.trim();
     const codeText = code.trim();
     if (!text && !codeText && !loading && !timeExpired) return;
 
-    if (answerRef.current) answerRef.current.value = "";
-    
     let submitText = text;
     if (timeExpired && !text && !codeText) {
       submitText = "Candidate ran out of time and did not provide an answer.";
@@ -161,6 +177,7 @@ export const UI = ({ hidden, showControls = true, showChat = true }) => {
 
     submitAnswer(submitText, codeText || null);
     setCode("");
+    setSpokenText("");
     setTimeExpired(false);
   };
 
@@ -176,6 +193,24 @@ export const UI = ({ hidden, showControls = true, showChat = true }) => {
 
   return (
     <div className="relative h-full flex flex-col">
+      {/* FULLSCREEN BLOCKER */}
+      {(interviewPhase === "interviewing" || interviewPhase === "transitioning") && !isFullscreen && (
+        <div className="absolute inset-0 z-[100] bg-[#070707]/95 backdrop-blur-xl flex flex-col items-center justify-center p-8 text-center">
+          <div className="w-20 h-20 bg-gray-900 rounded-3xl flex items-center justify-center mb-6 border border-gray-700 shadow-2xl">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-10 h-10 text-white">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
+            </svg>
+          </div>
+          <h2 className="text-2xl font-bold text-white mb-3">Fullscreen Required</h2>
+          <p className="text-gray-400 mb-8 max-w-md">To ensure a focused environment and prevent distractions, this interview must be taken in fullscreen mode.</p>
+          <button 
+            onClick={requestFullscreen}
+            className="px-8 py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/20 transition-all text-sm uppercase tracking-wider"
+          >
+            Enter Fullscreen
+          </button>
+        </div>
+      )}
 
       {/* ── Camera zoom button ── */}
       {showControls && (
@@ -379,44 +414,48 @@ export const UI = ({ hidden, showControls = true, showChat = true }) => {
                   </div>
 
                   {/* Answer input */}
-                  <div className="p-4 bg-gray-950/95 border-t border-gray-800">
-                    <div className="flex gap-2 items-end">
-                      <textarea
-                        ref={answerRef}
-                        rows={3}
-                        disabled={loading || timeExpired || interviewPhase === "transitioning"}
-                        placeholder={timeExpired ? "Time's up! Please click submit to proceed." : "Type your answer here… or use the mic"}
-                        className="flex-1 bg-gray-900/70 text-white placeholder:text-gray-500 p-3 rounded-xl border border-gray-700/50 focus:border-indigo-500 focus:outline-none text-sm resize-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" && e.ctrlKey) handleAnswer();
-                        }}
-                      />
-                      <div className="flex flex-col gap-2">
-                        <button
-                          onClick={toggleMic}
-                          disabled={loading || timeExpired || interviewPhase === "transitioning"}
-                          className={`p-3 rounded-xl transition-all duration-300 border
-                            ${isListening ? "bg-red-600/30 border-red-500 text-red-300 animate-pulse" : "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700"}
-                            disabled:opacity-50 disabled:cursor-not-allowed`}
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
-                          </svg>
-                        </button>
-                        <button
-                          onClick={handleAnswer}
-                          disabled={loading || interviewPhase === "transitioning"}
-                          className={`p-3 rounded-xl font-bold transition-all duration-300
-                            ${(loading || interviewPhase === "transitioning") ? "bg-gray-800 text-gray-500 cursor-not-allowed" : "bg-indigo-600 hover:bg-indigo-500 text-white"}`}
-                        >
-                          {loading
-                            ? <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
-                            : <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" /></svg>
-                          }
+                  <div className="p-6 bg-gray-950/95 border-t border-gray-800 flex flex-col items-center justify-center min-h-[140px] relative">
+                    
+                    {spokenText && (
+                      <div className="w-full max-w-2xl flex items-center justify-between bg-gray-900/70 p-4 rounded-2xl border border-indigo-500/30 mb-6 shadow-inner">
+                        <p className="text-white text-sm flex-1 mr-4 italic">"{spokenText}"</p>
+                        <button onClick={() => setSpokenText("")} className="text-gray-500 hover:text-red-400 p-2 transition-colors">
+                           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
                         </button>
                       </div>
+                    )}
+
+                    <div className="flex gap-4 items-center justify-center w-full relative max-w-4xl">
+                      {/* Big Mic Button */}
+                      <button
+                        onClick={toggleMic}
+                        disabled={loading || timeExpired || interviewPhase === "transitioning"}
+                        className={`p-6 rounded-full transition-all duration-300 border shadow-2xl group
+                          ${isListening 
+                            ? "bg-red-600/20 border-red-500 text-red-400 scale-110 shadow-red-500/20 animate-pulse" 
+                            : "bg-gray-900 border-gray-700 text-gray-400 hover:bg-gray-800 hover:border-indigo-500/50 hover:text-indigo-400"}
+                          disabled:opacity-50 disabled:cursor-not-allowed`}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-10 h-10">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
+                        </svg>
+                      </button>
+
+                      {/* Send Button */}
+                      <button
+                        onClick={handleAnswer}
+                        disabled={loading || interviewPhase === "transitioning" || (!spokenText && !code && !timeExpired)}
+                        className={`absolute right-4 p-5 rounded-2xl font-bold transition-all duration-300 flex items-center gap-2
+                          ${(loading || interviewPhase === "transitioning" || (!spokenText && !code && !timeExpired)) 
+                            ? "bg-gray-900 text-gray-600 border border-gray-800 cursor-not-allowed" 
+                            : "bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/20"}`}
+                      >
+                        {loading
+                          ? <svg className="w-6 h-6 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                          : <><span className="hidden sm:inline">Submit</span> <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" /></svg></>
+                        }
+                      </button>
                     </div>
-                    <p className="text-gray-600 text-xs mt-1.5 text-right">Ctrl + Enter to submit</p>
                   </div>
                 </motion.div>
               )}
