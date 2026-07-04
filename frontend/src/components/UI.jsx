@@ -71,7 +71,7 @@ const PhaseIndicator = ({ phase, round, maxRounds, qIdx, total }) => {
           <div key={label} className="flex items-center gap-2">
             <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-all
               ${done   ? "bg-emerald-500 border-emerald-500 text-white" :
-                active ? "bg-indigo-600 border-indigo-400 text-white animate-pulse" :
+                active ? "bg-teal-600 border-teal-400 text-white animate-pulse" :
                          "bg-gray-800 border-gray-600 text-gray-400"}`}>
               {done ? "✓" : i + 1}
             </div>
@@ -81,7 +81,7 @@ const PhaseIndicator = ({ phase, round, maxRounds, qIdx, total }) => {
         );
       })}
       {(phase === "interviewing" || phase === "transitioning") && (
-        <span className="ml-4 text-xs text-indigo-300">
+        <span className="ml-4 text-xs text-teal-300">
           R{round}/{maxRounds} · Q{qIdx + 1}/{total}
         </span>
       )}
@@ -205,7 +205,7 @@ export const UI = ({ hidden, showControls = true, showChat = true }) => {
           <p className="text-gray-400 mb-8 max-w-md">To ensure a focused environment and prevent distractions, this interview must be taken in fullscreen mode.</p>
           <button 
             onClick={requestFullscreen}
-            className="px-8 py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/20 transition-all text-sm uppercase tracking-wider"
+            className="px-8 py-4 bg-teal-600 hover:bg-teal-500 text-white font-bold rounded-xl shadow-lg shadow-teal-500/20 transition-all text-sm uppercase tracking-wider"
           >
             Enter Fullscreen
           </button>
@@ -235,12 +235,12 @@ export const UI = ({ hidden, showControls = true, showChat = true }) => {
           <div className="bg-transparent px-6 pt-4 pb-2 relative z-20">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-teal-500/20">
                   <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
                 </div>
-                <h1 className="text-sm font-bold tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400 uppercase">Live Interview</h1>
+                <h1 className="text-sm font-bold tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-emerald-400 uppercase">Live Interview</h1>
               </div>
               
               <div className="flex items-center gap-4">
@@ -276,12 +276,12 @@ export const UI = ({ hidden, showControls = true, showChat = true }) => {
                   initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
                   className="flex-1 flex flex-col items-center justify-center gap-6 p-8 relative overflow-hidden"
                 >
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-indigo-500/10 rounded-full blur-[80px] pointer-events-none" />
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-teal-500/10 rounded-full blur-[80px] pointer-events-none" />
                   
                   {interviewPhase === "upload" ? (
                     <div className="text-center relative z-10 max-w-sm">
-                      <div className="w-20 h-20 mx-auto mb-6 bg-gray-900/80 backdrop-blur-sm border border-gray-700 rounded-3xl flex items-center justify-center shadow-2xl shadow-indigo-500/20 rotate-3 hover:rotate-0 transition-transform">
-                        <svg className="w-10 h-10 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <div className="w-20 h-20 mx-auto mb-6 bg-gray-900/80 backdrop-blur-sm border border-gray-700 rounded-3xl flex items-center justify-center shadow-2xl shadow-teal-500/20 rotate-3 hover:rotate-0 transition-transform">
+                        <svg className="w-10 h-10 text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
                         </svg>
                       </div>
@@ -295,14 +295,14 @@ export const UI = ({ hidden, showControls = true, showChat = true }) => {
                   ) : (
                     <div className="text-center relative z-10">
                       <div className="relative w-24 h-24 mx-auto mb-6">
-                        <div className="absolute inset-0 rounded-full border-2 border-indigo-500/20" />
-                        <div className="absolute inset-0 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
+                        <div className="absolute inset-0 rounded-full border-2 border-teal-500/20" />
+                        <div className="absolute inset-0 rounded-full border-2 border-teal-500 border-t-transparent animate-spin" />
                         <div className="absolute inset-0 flex items-center justify-center">
-                          <svg className="w-8 h-8 text-indigo-400 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+                          <svg className="w-8 h-8 text-teal-400 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
                         </div>
                       </div>
                       <h2 className="text-xl font-bold text-white mb-2 tracking-tight">Initializing Session</h2>
-                      <p className="text-indigo-300/80 font-medium text-sm mb-1">Analyzing your credentials…</p>
+                      <p className="text-teal-300/80 font-medium text-sm mb-1">Analyzing your credentials…</p>
                       <p className="text-gray-500 text-xs">Setting up isolated interview environment</p>
                     </div>
                   )}
@@ -314,8 +314,8 @@ export const UI = ({ hidden, showControls = true, showChat = true }) => {
                 <motion.div key="starting" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                   className="flex-1 flex flex-col items-center justify-center gap-4 p-8"
                 >
-                  <div className="w-16 h-16 rounded-full border-4 border-indigo-500 border-t-transparent animate-spin" />
-                  <p className="text-indigo-300 font-medium text-center">Generating your personalised questions…</p>
+                  <div className="w-16 h-16 rounded-full border-4 border-teal-500 border-t-transparent animate-spin" />
+                  <p className="text-teal-300 font-medium text-center">Generating your personalised questions…</p>
                   <p className="text-gray-500 text-xs text-center">The AI is reading your resume & JD</p>
                 </motion.div>
               )}
@@ -347,16 +347,16 @@ export const UI = ({ hidden, showControls = true, showChat = true }) => {
                     )}
                   </AnimatePresence>
                   {/* Current question display */}
-                  <div className="p-4 border-b border-gray-800">
-                    <div className="flex items-start gap-3 bg-indigo-950/40 border border-indigo-700/30 rounded-2xl p-4">
-                      <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 mt-0.5">
+                  <div className="p-4">
+                    <div className="flex items-start gap-3 bg-teal-950/40 border border-teal-700/30 rounded-2xl p-4">
+                      <div className="w-8 h-8 rounded-full bg-teal-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 mt-0.5">
                         AI
                       </div>
                       <div>
-                        <p className="text-indigo-200 text-xs font-semibold mb-1 flex items-center gap-2">
+                        <p className="text-teal-200 text-xs font-semibold mb-1 flex items-center gap-2">
                           <span>Round {currentQuestion?.round} · Question {(currentQuestion?.q_idx ?? 0) + 1} of {currentQuestion?.total_questions}</span>
                           {(currentQuestion?.source_tags || []).map((tag, i) => (
-                            <span key={i} className="bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded text-[10px] uppercase border border-indigo-500/30">
+                            <span key={i} className="bg-teal-500/20 text-teal-300 px-1.5 py-0.5 rounded text-[10px] uppercase border border-teal-500/30">
                               {tag}
                             </span>
                           ))}
@@ -364,7 +364,7 @@ export const UI = ({ hidden, showControls = true, showChat = true }) => {
                         {loading ? (
                           <div className="flex gap-1.5 py-2">
                             {[0,1,2].map(i => (
-                              <div key={i} className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: `${i * 75}ms` }} />
+                              <div key={i} className="w-2 h-2 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: `${i * 75}ms` }} />
                             ))}
                           </div>
                         ) : (
@@ -417,7 +417,7 @@ export const UI = ({ hidden, showControls = true, showChat = true }) => {
                   <div className="p-6 flex flex-col items-center justify-center min-h-[140px] relative">
                     
                     {spokenText && (
-                      <div className="w-full max-w-2xl flex items-center justify-between bg-gray-900/70 p-4 rounded-2xl border border-indigo-500/30 mb-6 shadow-inner">
+                      <div className="w-full max-w-2xl flex items-center justify-between bg-gray-900/70 p-4 rounded-2xl border border-teal-500/30 mb-6 shadow-inner">
                         <p className="text-white text-sm flex-1 mr-4 italic">"{spokenText}"</p>
                         <button onClick={() => setSpokenText("")} className="text-gray-500 hover:text-red-400 p-2 transition-colors">
                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
@@ -433,7 +433,7 @@ export const UI = ({ hidden, showControls = true, showChat = true }) => {
                         className={`p-6 rounded-full transition-all duration-300 border shadow-2xl group
                           ${isListening 
                             ? "bg-red-600/20 border-red-500 text-red-400 scale-110 shadow-red-500/20 animate-pulse" 
-                            : "bg-gray-900 border-gray-700 text-gray-400 hover:bg-gray-800 hover:border-indigo-500/50 hover:text-indigo-400"}
+                            : "bg-gray-900 border-gray-700 text-gray-400 hover:bg-gray-800 hover:border-teal-500/50 hover:text-teal-400"}
                           disabled:opacity-50 disabled:cursor-not-allowed`}
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-10 h-10">
@@ -448,7 +448,7 @@ export const UI = ({ hidden, showControls = true, showChat = true }) => {
                         className={`absolute right-4 p-5 rounded-2xl font-bold transition-all duration-300 flex items-center gap-2
                           ${(loading || interviewPhase === "transitioning" || (!spokenText && !code && !timeExpired)) 
                             ? "bg-gray-900 text-gray-600 border border-gray-800 cursor-not-allowed" 
-                            : "bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/20"}`}
+                            : "bg-teal-600 hover:bg-teal-500 text-white shadow-lg shadow-teal-500/20"}`}
                       >
                         {loading
                           ? <svg className="w-6 h-6 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
@@ -491,8 +491,8 @@ export const UI = ({ hidden, showControls = true, showChat = true }) => {
 
                   {/* Report */}
                   {report && (
-                    <div className="bg-gradient-to-br from-indigo-950/60 to-purple-950/60 border border-indigo-700/30 rounded-2xl p-4">
-                      <h3 className="text-sm font-bold text-indigo-300 mb-3 flex items-center gap-2">
+                    <div className="bg-gradient-to-br from-teal-950/60 to-emerald-950/60 border border-teal-700/30 rounded-2xl p-4">
+                      <h3 className="text-sm font-bold text-teal-300 mb-3 flex items-center gap-2">
                         <span>📋</span> AI Evaluation Report
                       </h3>
                       <div className="text-gray-300 text-xs leading-relaxed whitespace-pre-wrap">{report}</div>
