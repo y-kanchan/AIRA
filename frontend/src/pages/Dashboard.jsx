@@ -31,6 +31,7 @@ export default function Dashboard() {
   const [materials, setMaterials] = useState([]);
   const [selectedMaterials, setSelectedMaterials] = useState([]); // kept for backward compat / extra github links
   const [uploadingMaterial, setUploadingMaterial] = useState(false);
+  const [isStarting, setIsStarting] = useState(false);
 
   const [resumeMode, setResumeMode] = useState("upload"); // upload | library
   const [selectedResumeId, setSelectedResumeId] = useState("");
@@ -202,8 +203,14 @@ export default function Dashboard() {
   };
 
   const handleStart = async () => {
+    if (isStarting) return;
+    setIsStarting(true);
+    
     const hasSelectedResume = materials.find(m => selectedMaterials.includes(m.id) && m.type === "resume") || selectedResumeId;
-    if (!resumeFile && !hasSelectedResume) return;
+    if (!resumeFile && !hasSelectedResume) {
+      setIsStarting(false);
+      return;
+    }
     
     // Auto-save new files to the materials library
     let newMaterialIds = [];
@@ -217,6 +224,7 @@ export default function Dashboard() {
       const res = await uploadToLibrary("resume", resumeFile.name, resumeFile, null, true);
       if (res && res.error) {
         alert("Resume Error: " + res.error);
+        setIsStarting(false);
         return;
       }
       if (res) newMaterialIds.push(res);
@@ -226,6 +234,7 @@ export default function Dashboard() {
       const res = await uploadToLibrary("jd", jdFile ? jdFile.name : "Pasted JD", jdFile, jdMode === "text" ? jdText : null, true);
       if (res && res.error) {
         alert("JD Error: " + res.error);
+        setIsStarting(false);
         return;
       }
       if (res) newMaterialIds.push(res);
@@ -235,6 +244,7 @@ export default function Dashboard() {
       const res = await uploadToLibrary("github", githubUrls[0].replace("https://github.com/", ""), null, githubUrls.join(","), true);
       if (res && res.error) {
         alert("GitHub Error: " + res.error);
+        setIsStarting(false);
         return;
       }
       if (res) newMaterialIds.push(res);
@@ -420,13 +430,13 @@ export default function Dashboard() {
                 <div className="pt-6">
                   <button 
                     onClick={handleStart} 
-                    disabled={!(resumeFile && resumeMode === 'upload') && !(selectedResumeId && resumeMode === 'library') && !materials.find(m => selectedMaterials.includes(m.id) && m.type === "resume")}
+                    disabled={isStarting || (!(resumeFile && resumeMode === 'upload') && !(selectedResumeId && resumeMode === 'library') && !materials.find(m => selectedMaterials.includes(m.id) && m.type === "resume"))}
                     className={`w-full py-4 rounded-xl font-semibold text-base transition-all duration-500 flex items-center justify-center gap-2
-                      ${((resumeFile && resumeMode === 'upload') || (selectedResumeId && resumeMode === 'library') || materials.find(m => selectedMaterials.includes(m.id) && m.type === "resume"))
+                      ${((resumeFile && resumeMode === 'upload') || (selectedResumeId && resumeMode === 'library') || materials.find(m => selectedMaterials.includes(m.id) && m.type === "resume")) && !isStarting
                         ? "bg-white text-black hover:bg-gray-200 hover:scale-[1.01] hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] shadow-[0_0_15px_rgba(255,255,255,0.1)]" 
                         : "bg-[#111] text-gray-600 border border-gray-800 cursor-not-allowed"}`}
                   >
-                    Start Interview
+                    {isStarting ? "Starting..." : "Start Interview"}
                   </button>
                 </div>
               </div>
